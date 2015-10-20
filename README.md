@@ -22,13 +22,13 @@ $ go build
 
 #### Launching in NFS mode
 
-*1. Run the plugin - can be added to systemd or run in the background*
+**1. Run the plugin - can be added to systemd or run in the background**
 
 ```
   $ sudo docker-volume-netshare nfs
 ```
 
-*2. Launch a container*
+**2. Launch a container**
 
 ```
   $ docker run -i -t --volume-driver=nfs -v nfshost/path:/mount ubuntu /bin/bash
@@ -36,13 +36,13 @@ $ go build
 
 #### Launching in Samba/CIFS mode
 
-*1. Run the plugin - can be added to systemd or run in the background*
+**1. Run the plugin - can be added to systemd or run in the background**
 
 ```
   $ sudo docker-volume-netshare samba --username smbuser --password smbpass --workgroup workgroup
 ```
 
-*2. Launch a container*
+**2. Launch a container**
 
 ```
   $ docker run -i -t --volume-driver=smb -v nfshost/path:/mount ubuntu /bin/bash
