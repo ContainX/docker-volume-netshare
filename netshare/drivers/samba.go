@@ -1,28 +1,28 @@
 package drivers
 
 import (
-	"log"
+	"bytes"
 	"fmt"
+	"github.com/calavera/dkvolume"
+	"log"
 	"os"
 	"sync"
-	"bytes"
-	"github.com/calavera/dkvolume"
 )
 
 type smbDriver struct {
-	root		string
-	user		string
-	pass		string
-	workgroup	string
-	m		*sync.Mutex
+	root      string
+	user      string
+	pass      string
+	workgroup string
+	m         *sync.Mutex
 }
 
 func NewSambaDriver(root, user, pass, workgroup string) smbDriver {
 	d := smbDriver{
-		root:		root,
-		user:		user,
-		workgroup:	workgroup,
-		m:		&sync.Mutex{},
+		root:      root,
+		user:      user,
+		workgroup: workgroup,
+		m:         &sync.Mutex{},
 	}
 	return d
 }

@@ -1,28 +1,28 @@
 package netshare
 
 import (
-	"github.com/spf13/cobra"
-	"github.com/calavera/dkvolume"
-	"path/filepath"
-	"github.com/gondor/docker-volume-netshare/netshare/drivers"
 	"fmt"
+	"github.com/calavera/dkvolume"
+	"github.com/gondor/docker-volume-netshare/netshare/drivers"
+	"github.com/spf13/cobra"
 	"os"
+	"path/filepath"
 )
 
 const (
-	TypeNFS		= "nfs"
-	TypeSMB		= "smb"
-	UsernameFlag	= "username"
-	PasswordFlag	= "password"
-	WorkgroupFlag	= "workgroup"
-	VersionFlag	= "version"
-	BasedirFlag	= "basedir"
-	TCPFlag		= "tcp"
-	EnvSambaUser	= "NETSHARE_SMB_USERNAME"
-	EnvSambaPass	= "NETSHARE_SMB_PASSWORD"
-	EnvSambaWG	= "NETSHARE_SMB_WORKGROUP"
-	PluginAlias	= "netshare"
-	NetshareHelp	= `
+	TypeNFS       = "nfs"
+	TypeSMB       = "smb"
+	UsernameFlag  = "username"
+	PasswordFlag  = "password"
+	WorkgroupFlag = "workgroup"
+	VersionFlag   = "version"
+	BasedirFlag   = "basedir"
+	TCPFlag       = "tcp"
+	EnvSambaUser  = "NETSHARE_SMB_USERNAME"
+	EnvSambaPass  = "NETSHARE_SMB_PASSWORD"
+	EnvSambaWG    = "NETSHARE_SMB_WORKGROUP"
+	PluginAlias   = "netshare"
+	NetshareHelp  = `
 	docker-volume-netshare (NFS V3/4, Samba Volume Driver Plugin)
 
 Provides docker volume support for NFS v3 and 4 as well as Samba.  This plugin can be run multiple times to
@@ -32,21 +32,21 @@ support different mount types.
 
 var (
 	rootCmd = &cobra.Command{
-		Use:              "docker-volume-netshare",
-		Short:            "NFS and Samba - Docker volume driver plugin",
-		Long:             NetshareHelp,
+		Use:   "docker-volume-netshare",
+		Short: "NFS and Samba - Docker volume driver plugin",
+		Long:  NetshareHelp,
 	}
 
 	sambaCmd = &cobra.Command{
-		Use:		 "samba",
-		Short:		 "run plugin in Samba mode",
-		Run:		 execSamba,
+		Use:   "samba",
+		Short: "run plugin in Samba mode",
+		Run:   execSamba,
 	}
 
 	nfsCmd = &cobra.Command{
-		Use:		 "nfs",
-		Short:		 "run plugin in NFS mode",
-		Run:		 execNFS,
+		Use:   "nfs",
+		Short: "run plugin in NFS mode",
+		Run:   execNFS,
 	}
 	baseDir = ""
 )

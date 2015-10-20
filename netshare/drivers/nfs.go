@@ -1,25 +1,25 @@
 package drivers
 
 import (
-	"log"
 	"fmt"
-	"os"
-	"sync"
 	"github.com/calavera/dkvolume"
+	"log"
+	"os"
 	"strings"
+	"sync"
 )
 
 type nfsDriver struct {
-	root		string
-	version		int
-	m		*sync.Mutex
+	root    string
+	version int
+	m       *sync.Mutex
 }
 
 func NewNfsDriver(root string, version int) nfsDriver {
 	d := nfsDriver{
-		root:		root,
-		version:	version,
-		m:		&sync.Mutex{},
+		root:    root,
+		version: version,
+		m:       &sync.Mutex{},
 	}
 	return d
 }
@@ -75,8 +75,6 @@ func (n nfsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 	return dkvolume.Response{}
 }
 
-
-
 func (n nfsDriver) fixSource(name string) string {
 	source := strings.Split(name, "/")
 	source[0] = source[0] + ":"
@@ -85,7 +83,7 @@ func (n nfsDriver) fixSource(name string) string {
 
 func (n nfsDriver) mountVolume(source, dest string) error {
 	var cmd string
-	switch(n.version) {
+	switch n.version {
 	case 3:
 		cmd = fmt.Sprintf("mount -o port=2049,nolock,proto=tcp %s %s", source, dest)
 	default:

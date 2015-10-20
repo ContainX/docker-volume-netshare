@@ -1,13 +1,12 @@
 package drivers
 
 import (
-	"log"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
-
 
 func createDest(dest string) error {
 	fi, err := os.Lstat(dest)
