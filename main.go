@@ -6,10 +6,4 @@ import (
 
 func main() {
 	netshare.Execute()
-	//	flag.Parse()
-
-	//	d := newNfsDriver(*root, *version)
-	//	h := dkvolume.NewHandler(d)
-	//	fmt.Println(h.ServeTCP("nfs", ":8888"))
-	//	fmt.Println(h.ServeUnix("", "nfs"))
 }

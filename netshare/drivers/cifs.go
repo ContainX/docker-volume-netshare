@@ -9,45 +9,45 @@ import (
 	"sync"
 )
 
-type smbDriver struct {
-	root      string
-	user      string
-	pass      string
-	workgroup string
-	m         *sync.Mutex
+type cifsDriver struct {
+	root   string
+	user   string
+	pass   string
+	domain string
+	m      *sync.Mutex
 }
 
-func NewSambaDriver(root, user, pass, workgroup string) smbDriver {
-	d := smbDriver{
-		root:      root,
-		user:      user,
-		workgroup: workgroup,
-		m:         &sync.Mutex{},
+func NewCIFSDriver(root, user, pass, domain string) cifsDriver {
+	d := cifsDriver{
+		root:   root,
+		user:   user,
+		domain: domain,
+		m:      &sync.Mutex{},
 	}
 	return d
 }
 
-func (s smbDriver) Create(r dkvolume.Request) dkvolume.Response {
+func (s cifsDriver) Create(r dkvolume.Request) dkvolume.Response {
 	return dkvolume.Response{}
 }
 
-func (s smbDriver) Remove(r dkvolume.Request) dkvolume.Response {
+func (s cifsDriver) Remove(r dkvolume.Request) dkvolume.Response {
 	log.Printf("Removing volume %s\n", r.Name)
 	return dkvolume.Response{}
 }
 
-func (s smbDriver) Path(r dkvolume.Request) dkvolume.Response {
+func (s cifsDriver) Path(r dkvolume.Request) dkvolume.Response {
 	log.Printf("Path for %s is at %s\n", r.Name, mountpoint(s.root, r.Name))
 	return dkvolume.Response{Mountpoint: mountpoint(s.root, r.Name)}
 }
 
-func (s smbDriver) Mount(r dkvolume.Request) dkvolume.Response {
+func (s cifsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	s.m.Lock()
 	defer s.m.Unlock()
 	dest := mountpoint(s.root, r.Name)
 	source := s.fixSource(r.Name)
 
-	log.Printf("Mounting Samba volume %s on %s, %v\n", source, dest, r.Options)
+	log.Printf("Mounting CIFS volume %s on %s, %v\n", source, dest, r.Options)
 
 	if err := createDest(dest); err != nil {
 		return dkvolume.Response{Err: err.Error()}
@@ -59,7 +59,7 @@ func (s smbDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	return dkvolume.Response{Mountpoint: dest}
 }
 
-func (s smbDriver) Unmount(r dkvolume.Request) dkvolume.Response {
+func (s cifsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 	s.m.Lock()
 	defer s.m.Unlock()
 	dest := mountpoint(s.root, r.Name)
@@ -78,11 +78,11 @@ func (s smbDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 	return dkvolume.Response{}
 }
 
-func (s smbDriver) fixSource(name string) string {
+func (s cifsDriver) fixSource(name string) string {
 	return "//" + name
 }
 
-func (s smbDriver) mountVolume(source, dest string) error {
+func (s cifsDriver) mountVolume(source, dest string) error {
 	var opts bytes.Buffer
 
 	opts.WriteString("-o ")
@@ -96,8 +96,8 @@ func (s smbDriver) mountVolume(source, dest string) error {
 		opts.WriteString("guest,")
 	}
 
-	if s.workgroup != "" {
-		opts.WriteString(fmt.Sprintf("domain=%s,", s.workgroup))
+	if s.domain != "" {
+		opts.WriteString(fmt.Sprintf("domain=%s,", s.domain))
 	}
 	opts.WriteString("rw ")
 

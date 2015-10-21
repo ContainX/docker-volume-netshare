@@ -1,8 +1,8 @@
-# Docker NFS, NFS4, Samba/CIFS Volume Plugin
+# Docker NFS, AWS EFS & Samba/CIFS Volume Plugin
 
 [![Build Status](https://travis-ci.org/gondor/docker-volume-netshare.svg)](https://travis-ci.org/gondor/docker-volume-netshare)
 
-Mount NFS v3,4 or CIFS inside your docker containers.  This is a docker plugin which enables these volume types to be directly mounted within a container.
+Mount NFS v3/4, AWS EFS or CIFS inside your docker containers.  This is a docker plugin which enables these volume types to be directly mounted within a container.
 
 ## Installation
 
@@ -15,9 +15,10 @@ $ go build
 
 #### From Binaries
 
-* Architecture i386 [ [linux](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.1_linux_386.tar.gz?direct) / [netbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.1_netbsd_386.zip?direct) / [freebsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.1_freebsd_386.zip?direct) / [openbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.1_openbsd_386.zip?direct) ]
-* Architecture amd64 [ [linux](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.1_linux_amd64.tar.gz?direct) / [netbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.1_netbsd_amd64.zip?direct) / [freebsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.1_freebsd_amd64.zip?direct) / [openbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.1_openbsd_amd64.zip?direct) ]
-* Debian Package [ [i386](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.1_i386.deb?direct) ] / [amd64](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.1_amd64.deb?direct) ] ]
+* Architecture i386 [ [linux](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.2_linux_386.tar.gz?direct) / [netbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.2_netbsd_386.zip?direct) / [freebsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.2_freebsd_386.zip?direct) / [openbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.2_openbsd_386.zip?direct) ]
+* Architecture amd64 [ [linux](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.2_linux_amd64.tar.gz?direct) / [netbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.2_netbsd_amd64.zip?direct) / [freebsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.2_freebsd_amd64.zip?direct) / [openbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.2_openbsd_amd64.zip?direct) ]
+* Debian Package [ [i386](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.2_i386.deb?direct) ] / [amd64](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.2_amd64.deb?direct) ] ]
+
 ## Usage
 
 #### Launching in NFS mode
@@ -34,18 +35,39 @@ $ go build
   $ docker run -i -t --volume-driver=nfs -v nfshost/path:/mount ubuntu /bin/bash
 ```
 
-#### Launching in Samba/CIFS mode
+#### Launching in EFS mode
 
 **1. Run the plugin - can be added to systemd or run in the background**
 
 ```
-  $ sudo docker-volume-netshare samba --username smbuser --password smbpass --workgroup workgroup
+  // With File System ID resolution to AZ / Region URI
+  $ sudo docker-volume-netshare efs
+  // For VPCs without AWS DNS - using IP for Mount
+  $ sudo docker-volume-netshare efs --noresolve
 ```
 
 **2. Launch a container**
 
 ```
-  $ docker run -i -t --volume-driver=smb -v nfshost/path:/mount ubuntu /bin/bash
+  // Launching a container using the EFS File System ID
+  $ docker run -i -t --volume-driver=efs -v fs-2324532:/mount ubuntu /bin/bash
+  // Launching a container using the IP Address of the EFS mount point (--noresolve flag in plugin)
+  $ docker run -i -t --volume-driver=efs -v 10.2.3.1:/mount ubuntu /bin/bash
+```
+
+#### Launching in Samba/CIFS mode
+
+**1. Run the plugin - can be added to systemd or run in the background**
+
+```
+  $ sudo docker-volume-netshare cifs --username user --password pass --domain domain
+```
+
+**2. Launch a container**
+
+```
+  // In CIFS the "//" is omitted and handled by netshare
+  $ docker run -i -t --volume-driver=cifs -v cifshost/share:/mount ubuntu /bin/bash
 ```
 
 ## License

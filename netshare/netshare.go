@@ -10,22 +10,22 @@ import (
 )
 
 const (
-	TypeNFS       = "nfs"
-	TypeSMB       = "smb"
 	UsernameFlag  = "username"
 	PasswordFlag  = "password"
-	WorkgroupFlag = "workgroup"
+	DomainFlag    = "domain"
 	VersionFlag   = "version"
 	BasedirFlag   = "basedir"
+	AvailZoneFlag = "az"
+	NoResolveFlag = "noresolve"
 	TCPFlag       = "tcp"
-	EnvSambaUser  = "NETSHARE_SMB_USERNAME"
-	EnvSambaPass  = "NETSHARE_SMB_PASSWORD"
-	EnvSambaWG    = "NETSHARE_SMB_WORKGROUP"
+	EnvSambaUser  = "NETSHARE_CIFS_USERNAME"
+	EnvSambaPass  = "NETSHARE_CIFS_PASSWORD"
+	EnvSambaWG    = "NETSHARE_CIFS_DOMAIN"
 	PluginAlias   = "netshare"
 	NetshareHelp  = `
-	docker-volume-netshare (NFS V3/4, Samba Volume Driver Plugin)
+	docker-volume-netshare (NFS V3/4, AWS EFS and CIFS Volume Driver Plugin)
 
-Provides docker volume support for NFS v3 and 4 as well as Samba.  This plugin can be run multiple times to
+Provides docker volume support for NFS v3 and 4, EFS as well as CIFS.  This plugin can be run multiple times to
 support different mount types.
 	`
 )
@@ -33,14 +33,14 @@ support different mount types.
 var (
 	rootCmd = &cobra.Command{
 		Use:   "docker-volume-netshare",
-		Short: "NFS and Samba - Docker volume driver plugin",
+		Short: "NFS and CIFS - Docker volume driver plugin",
 		Long:  NetshareHelp,
 	}
 
-	sambaCmd = &cobra.Command{
-		Use:   "samba",
-		Short: "run plugin in Samba mode",
-		Run:   execSamba,
+	cifsCmd = &cobra.Command{
+		Use:   "cifs",
+		Short: "run plugin in CIFS mode",
+		Run:   execCIFS,
 	}
 
 	nfsCmd = &cobra.Command{
@@ -48,12 +48,18 @@ var (
 		Short: "run plugin in NFS mode",
 		Run:   execNFS,
 	}
+
+	efsCmd = &cobra.Command{
+		Use:   "efs",
+		Short: "run plugin in AWS EFS mode",
+		Run:   execEFS,
+	}
 	baseDir = ""
 )
 
 func Execute() {
 	setupFlags()
-	rootCmd.AddCommand(sambaCmd, nfsCmd)
+	rootCmd.AddCommand(cifsCmd, nfsCmd, efsCmd)
 	rootCmd.Execute()
 }
 
@@ -61,26 +67,37 @@ func setupFlags() {
 	rootCmd.PersistentFlags().StringVar(&baseDir, BasedirFlag, filepath.Join(dkvolume.DefaultDockerRootDirectory, PluginAlias), "Mounted volume base directory")
 	rootCmd.PersistentFlags().String(TCPFlag, ":8877", "Bind to TCP rather than Unix sockets.  :PORT for all interfaces or ADDRESS:PORT to bind")
 
-	sambaCmd.Flags().StringP(UsernameFlag, "u", "", "Username to use for mounts.  Can also set environment NETSHARE_SMB_USERNAME")
-	sambaCmd.Flags().StringP(PasswordFlag, "p", "", "Password to use for mounts.  Can also set environment NETSHARE_SMB_PASSWORD")
-	sambaCmd.Flags().StringP(WorkgroupFlag, "w", "", "Workgroup to use for mounts.  Can also set environment NETSHARE_SMB_WORKGROUP")
+	cifsCmd.Flags().StringP(UsernameFlag, "u", "", "Username to use for mounts.  Can also set environment NETSHARE_CIFS_USERNAME")
+	cifsCmd.Flags().StringP(PasswordFlag, "p", "", "Password to use for mounts.  Can also set environment NETSHARE_CIFS_PASSWORD")
+	cifsCmd.Flags().StringP(DomainFlag, "d", "", "Workgroup to use for mounts.  Can also set environment NETSHARE_CIFS_DOMAIN")
+
 	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]")
+
+	efsCmd.Flags().String(AvailZoneFlag, "", "AWS Availability zone [default: \"\", looks up via metadata]")
+	efsCmd.Flags().Bool(NoResolveFlag, false, "Indicates EFS mount sources are IP Addresses vs File System ID")
 }
 
 func execNFS(cmd *cobra.Command, args []string) {
 	version, _ := cmd.Flags().GetInt(VersionFlag)
-	d := drivers.NewNfsDriver(rootForType(TypeNFS), version)
-	start(TypeNFS, d)
+	d := drivers.NewNFSDriver(rootForType(drivers.NFS), version)
+	start(drivers.NFS, d)
 }
 
-func execSamba(cmd *cobra.Command, args []string) {
+func execEFS(cmd *cobra.Command, args []string) {
+	az, _ := cmd.Flags().GetString(AvailZoneFlag)
+	resolve, _ := cmd.Flags().GetBool(NoResolveFlag)
+
+	d := drivers.NewEFSDriver(rootForType(drivers.EFS), az, !resolve)
+	start(drivers.EFS, d)
+}
+
+func execCIFS(cmd *cobra.Command, args []string) {
 	user := typeOrEnv(cmd, UsernameFlag, EnvSambaUser)
 	pass := typeOrEnv(cmd, PasswordFlag, EnvSambaPass)
-	workgroup := typeOrEnv(cmd, WorkgroupFlag, EnvSambaWG)
+	domain := typeOrEnv(cmd, DomainFlag, EnvSambaWG)
 
-	d := drivers.NewSambaDriver(rootForType(TypeSMB), user, pass, workgroup)
-	start(TypeSMB, d)
-
+	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain)
+	start(drivers.CIFS, d)
 }
 
 func typeOrEnv(cmd *cobra.Command, flag, envname string) string {
@@ -91,11 +108,11 @@ func typeOrEnv(cmd *cobra.Command, flag, envname string) string {
 	return val
 }
 
-func rootForType(dt string) string {
-	return filepath.Join(baseDir, dt)
+func rootForType(dt drivers.DriverType) string {
+	return filepath.Join(baseDir, dt.String())
 }
 
-func start(dt string, driver dkvolume.Driver) {
+func start(dt drivers.DriverType, driver dkvolume.Driver) {
 	h := dkvolume.NewHandler(driver)
-	fmt.Println(h.ServeUnix("", dt))
+	fmt.Println(h.ServeUnix("", dt.String()))
 }

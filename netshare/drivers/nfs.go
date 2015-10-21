@@ -15,7 +15,7 @@ type nfsDriver struct {
 	m       *sync.Mutex
 }
 
-func NewNfsDriver(root string, version int) nfsDriver {
+func NewNFSDriver(root string, version int) nfsDriver {
 	d := nfsDriver{
 		root:    root,
 		version: version,
@@ -44,13 +44,13 @@ func (n nfsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	dest := mountpoint(n.root, r.Name)
 	source := n.fixSource(r.Name)
 
-	log.Printf("Mounting NFS volume %s on %s, %v\n", source, dest, r.Options)
+	log.Printf("Mounting NFS volume %s on %s\n", source, dest)
 
 	if err := createDest(dest); err != nil {
 		return dkvolume.Response{Err: err.Error()}
 	}
 
-	if err := n.mountVolume(source, dest); err != nil {
+	if err := mountVolume(source, dest, n.version); err != nil {
 		return dkvolume.Response{Err: err.Error()}
 	}
 	return dkvolume.Response{Mountpoint: dest}
@@ -81,13 +81,14 @@ func (n nfsDriver) fixSource(name string) string {
 	return strings.Join(source, "/")
 }
 
-func (n nfsDriver) mountVolume(source, dest string) error {
+func mountVolume(source, dest string, version int) error {
 	var cmd string
-	switch n.version {
+	switch version {
 	case 3:
 		cmd = fmt.Sprintf("mount -o port=2049,nolock,proto=tcp %s %s", source, dest)
 	default:
 		cmd = fmt.Sprintf("mount -t nfs4 %s %s", source, dest)
 	}
+	log.Printf("exec: %s\n", cmd)
 	return run(cmd)
 }
