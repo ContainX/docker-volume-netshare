@@ -14,6 +14,7 @@ type cifsDriver struct {
 	user   string
 	pass   string
 	domain string
+	mountm *mountManager
 	m      *sync.Mutex
 }
 
@@ -22,6 +23,7 @@ func NewCIFSDriver(root, user, pass, domain string) cifsDriver {
 		root:   root,
 		user:   user,
 		domain: domain,
+		mountm: NewVolumeManager(),
 		m:      &sync.Mutex{},
 	}
 	return d
@@ -47,6 +49,12 @@ func (s cifsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	dest := mountpoint(s.root, r.Name)
 	source := s.fixSource(r.Name)
 
+	if s.mountm.HasMount(dest) && s.mountm.Count(dest) > 0 {
+		log.Printf("Using existing CIFS volume mount: %s\n", dest)
+		s.mountm.Increment(dest)
+		return dkvolume.Response{Mountpoint: dest}
+	}
+
 	log.Printf("Mounting CIFS volume %s on %s, %v\n", source, dest, r.Options)
 
 	if err := createDest(dest); err != nil {
@@ -56,6 +64,7 @@ func (s cifsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	if err := s.mountVolume(source, dest); err != nil {
 		return dkvolume.Response{Err: err.Error()}
 	}
+	s.mountm.Add(dest, r.Name)
 	return dkvolume.Response{Mountpoint: dest}
 }
 
@@ -64,6 +73,15 @@ func (s cifsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 	defer s.m.Unlock()
 	dest := mountpoint(s.root, r.Name)
 	source := s.fixSource(r.Name)
+
+	if s.mountm.HasMount(dest) {
+		if s.mountm.Count(dest) > 1 {
+			log.Printf("Skipping unmount for %s - in use by other containers\n", dest)
+			s.mountm.Decrement(dest)
+			return dkvolume.Response{}
+		}
+		s.mountm.Decrement(dest)
+	}
 
 	log.Printf("Unmounting volume %s from %s\n", source, dest)
 

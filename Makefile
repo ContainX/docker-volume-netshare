@@ -1,4 +1,4 @@
-VERSION = 0.2
+VERSION = 0.3
 
 GO_FMT = gofmt -s -w -l .
 GO_XC = goxc -os="linux freebsd openbsd netbsd"

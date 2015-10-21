@@ -12,6 +12,7 @@ import (
 type nfsDriver struct {
 	root    string
 	version int
+	mountm  *mountManager
 	m       *sync.Mutex
 }
 
@@ -19,6 +20,7 @@ func NewNFSDriver(root string, version int) nfsDriver {
 	d := nfsDriver{
 		root:    root,
 		version: version,
+		mountm:  NewVolumeManager(),
 		m:       &sync.Mutex{},
 	}
 	return d
@@ -44,6 +46,12 @@ func (n nfsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	dest := mountpoint(n.root, r.Name)
 	source := n.fixSource(r.Name)
 
+	if n.mountm.HasMount(dest) && n.mountm.Count(dest) > 0 {
+		log.Printf("Using existing NFS volume mount: %s\n", dest)
+		n.mountm.Increment(dest)
+		return dkvolume.Response{Mountpoint: dest}
+	}
+
 	log.Printf("Mounting NFS volume %s on %s\n", source, dest)
 
 	if err := createDest(dest); err != nil {
@@ -53,6 +61,7 @@ func (n nfsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	if err := mountVolume(source, dest, n.version); err != nil {
 		return dkvolume.Response{Err: err.Error()}
 	}
+	n.mountm.Add(dest, r.Name)
 	return dkvolume.Response{Mountpoint: dest}
 }
 
@@ -61,6 +70,15 @@ func (n nfsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 	defer n.m.Unlock()
 	dest := mountpoint(n.root, r.Name)
 	source := n.fixSource(r.Name)
+
+	if n.mountm.HasMount(dest) {
+		if n.mountm.Count(dest) > 1 {
+			log.Printf("Skipping unmount for %s - in use by other containers\n", dest)
+			n.mountm.Decrement(dest)
+			return dkvolume.Response{}
+		}
+		n.mountm.Decrement(dest)
+	}
 
 	log.Printf("Unmounting volume %s from %s\n", source, dest)
 

@@ -18,6 +18,7 @@ type efsDriver struct {
 	availzone string
 	resolve   bool
 	region    string
+	mountm    *mountManager
 	m         *sync.Mutex
 }
 
@@ -26,6 +27,7 @@ func NewEFSDriver(root, az string, resolve bool) efsDriver {
 	d := efsDriver{
 		root:    root,
 		resolve: resolve,
+		mountm:  NewVolumeManager(),
 		m:       &sync.Mutex{},
 	}
 	md, err := fetchAWSMetaData()
@@ -60,6 +62,12 @@ func (e efsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	dest := mountpoint(e.root, r.Name)
 	source := e.fixSource(r.Name)
 
+	if e.mountm.HasMount(dest) && e.mountm.Count(dest) > 0 {
+		log.Printf("Using existing EFS volume mount: %s\n", dest)
+		e.mountm.Increment(dest)
+		return dkvolume.Response{Mountpoint: dest}
+	}
+
 	log.Printf("Mounting EFS volume %s on %s\n", source, dest)
 
 	if err := createDest(dest); err != nil {
@@ -69,6 +77,7 @@ func (e efsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	if err := mountVolume(source, dest, 4); err != nil {
 		return dkvolume.Response{Err: err.Error()}
 	}
+	e.mountm.Add(dest, r.Name)
 	return dkvolume.Response{Mountpoint: dest}
 }
 
@@ -77,6 +86,15 @@ func (e efsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 	defer e.m.Unlock()
 	dest := mountpoint(e.root, r.Name)
 	source := e.fixSource(r.Name)
+
+	if e.mountm.HasMount(dest) {
+		if e.mountm.Count(dest) > 1 {
+			log.Printf("Skipping unmount for %s - in use by other containers\n", dest)
+			e.mountm.Decrement(dest)
+			return dkvolume.Response{}
+		}
+		e.mountm.Decrement(dest)
+	}
 
 	log.Printf("Unmounting volume %s from %s\n", source, dest)
 
