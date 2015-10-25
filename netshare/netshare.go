@@ -2,11 +2,13 @@ package netshare
 
 import (
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"github.com/calavera/dkvolume"
 	"github.com/gondor/docker-volume-netshare/netshare/drivers"
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 const (
@@ -15,12 +17,17 @@ const (
 	DomainFlag    = "domain"
 	VersionFlag   = "version"
 	BasedirFlag   = "basedir"
+	VerboseFlag   = "verbose"
 	AvailZoneFlag = "az"
 	NoResolveFlag = "noresolve"
 	TCPFlag       = "tcp"
+	PortFlag      = "port"
 	EnvSambaUser  = "NETSHARE_CIFS_USERNAME"
 	EnvSambaPass  = "NETSHARE_CIFS_PASSWORD"
 	EnvSambaWG    = "NETSHARE_CIFS_DOMAIN"
+	EnvNfsVers    = "NETSHARE_NFS_VERSION"
+	EnvTCP        = "NETSHARE_TCP_ENABLED"
+	EnvTCPAddr    = "NETSHARE_TCP_ADDR"
 	PluginAlias   = "netshare"
 	NetshareHelp  = `
 	docker-volume-netshare (NFS V3/4, AWS EFS and CIFS Volume Driver Plugin)
@@ -32,9 +39,10 @@ support different mount types.
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "docker-volume-netshare",
-		Short: "NFS and CIFS - Docker volume driver plugin",
-		Long:  NetshareHelp,
+		Use:              "docker-volume-netshare",
+		Short:            "NFS and CIFS - Docker volume driver plugin",
+		Long:             NetshareHelp,
+		PersistentPreRun: setupLogger,
 	}
 
 	cifsCmd = &cobra.Command{
@@ -65,20 +73,37 @@ func Execute() {
 
 func setupFlags() {
 	rootCmd.PersistentFlags().StringVar(&baseDir, BasedirFlag, filepath.Join(dkvolume.DefaultDockerRootDirectory, PluginAlias), "Mounted volume base directory")
-	rootCmd.PersistentFlags().String(TCPFlag, ":8877", "Bind to TCP rather than Unix sockets.  :PORT for all interfaces or ADDRESS:PORT to bind")
+	rootCmd.PersistentFlags().Bool(TCPFlag, false, "Bind to TCP rather than Unix sockets.  Can also be set via NETSHARE_TCP_ENABLED")
+	rootCmd.PersistentFlags().String(PortFlag, ":8877", "TCP Port if --tcp flag is true.  :PORT for all interfaces or ADDRESS:PORT to bind.")
+	rootCmd.PersistentFlags().Bool(VerboseFlag, false, "Turns on verbose logging")
 
 	cifsCmd.Flags().StringP(UsernameFlag, "u", "", "Username to use for mounts.  Can also set environment NETSHARE_CIFS_USERNAME")
 	cifsCmd.Flags().StringP(PasswordFlag, "p", "", "Password to use for mounts.  Can also set environment NETSHARE_CIFS_PASSWORD")
-	cifsCmd.Flags().StringP(DomainFlag, "d", "", "Workgroup to use for mounts.  Can also set environment NETSHARE_CIFS_DOMAIN")
+	cifsCmd.Flags().StringP(DomainFlag, "d", "", "Domain to use for mounts.  Can also set environment NETSHARE_CIFS_DOMAIN")
 
-	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]")
+	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]. Can also be set with NETSHARE_NFS_VERSION")
 
 	efsCmd.Flags().String(AvailZoneFlag, "", "AWS Availability zone [default: \"\", looks up via metadata]")
 	efsCmd.Flags().Bool(NoResolveFlag, false, "Indicates EFS mount sources are IP Addresses vs File System ID")
 }
 
+func setupLogger(cmd *cobra.Command, args []string) {
+	if verbose, _ := cmd.Flags().GetBool(VerboseFlag); verbose {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+}
+
 func execNFS(cmd *cobra.Command, args []string) {
 	version, _ := cmd.Flags().GetInt(VersionFlag)
+	if os.Getenv(EnvNfsVers) != "" {
+		if v, err := strconv.Atoi(os.Getenv(EnvNfsVers)); err == nil {
+			if v == 3 || v == 4 {
+				version = v
+			}
+		}
+	}
 	d := drivers.NewNFSDriver(rootForType(drivers.NFS), version)
 	start(drivers.NFS, d)
 }
@@ -114,5 +139,27 @@ func rootForType(dt drivers.DriverType) string {
 
 func start(dt drivers.DriverType, driver dkvolume.Driver) {
 	h := dkvolume.NewHandler(driver)
-	fmt.Println(h.ServeUnix("", dt.String()))
+	if isTCPEnabled() {
+		addr := os.Getenv(EnvTCPAddr)
+		if addr == "" {
+			addr, _ = rootCmd.PersistentFlags().GetString(PortFlag)
+		}
+		fmt.Println(h.ServeTCP(dt.String(), addr))
+	} else {
+		fmt.Println(h.ServeUnix("", dt.String()))
+	}
+}
+
+func isTCPEnabled() bool {
+	if tcp, _ := rootCmd.PersistentFlags().GetBool(TCPFlag); tcp {
+		return tcp
+	}
+
+	if os.Getenv(EnvTCP) != "" {
+		ev, _ := strconv.ParseBool(os.Getenv(EnvTCP))
+		fmt.Println(ev)
+
+		return ev
+	}
+	return false
 }

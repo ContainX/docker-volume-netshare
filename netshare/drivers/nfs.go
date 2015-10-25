@@ -2,8 +2,8 @@ package drivers
 
 import (
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"github.com/calavera/dkvolume"
-	"log"
 	"os"
 	"strings"
 	"sync"
@@ -31,12 +31,12 @@ func (n nfsDriver) Create(r dkvolume.Request) dkvolume.Response {
 }
 
 func (n nfsDriver) Remove(r dkvolume.Request) dkvolume.Response {
-	log.Printf("Removing volume %s\n", r.Name)
+	log.Debugf("Removing volume %s\n", r.Name)
 	return dkvolume.Response{}
 }
 
 func (n nfsDriver) Path(r dkvolume.Request) dkvolume.Response {
-	log.Printf("Path for %s is at %s\n", r.Name, mountpoint(n.root, r.Name))
+	log.Debugf("Path for %s is at %s\n", r.Name, mountpoint(n.root, r.Name))
 	return dkvolume.Response{Mountpoint: mountpoint(n.root, r.Name)}
 }
 
@@ -47,12 +47,12 @@ func (n nfsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	source := n.fixSource(r.Name)
 
 	if n.mountm.HasMount(dest) && n.mountm.Count(dest) > 0 {
-		log.Printf("Using existing NFS volume mount: %s\n", dest)
+		log.Infof("Using existing NFS volume mount: %s\n", dest)
 		n.mountm.Increment(dest)
 		return dkvolume.Response{Mountpoint: dest}
 	}
 
-	log.Printf("Mounting NFS volume %s on %s\n", source, dest)
+	log.Infof("Mounting NFS volume %s on %s\n", source, dest)
 
 	if err := createDest(dest); err != nil {
 		return dkvolume.Response{Err: err.Error()}
@@ -80,7 +80,7 @@ func (n nfsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 		n.mountm.Decrement(dest)
 	}
 
-	log.Printf("Unmounting volume %s from %s\n", source, dest)
+	log.Infof("Unmounting volume %s from %s\n", source, dest)
 
 	if err := run(fmt.Sprintf("umount %s", dest)); err != nil {
 		return dkvolume.Response{Err: err.Error()}
@@ -107,6 +107,6 @@ func mountVolume(source, dest string, version int) error {
 	default:
 		cmd = fmt.Sprintf("mount -t nfs4 %s %s", source, dest)
 	}
-	log.Printf("exec: %s\n", cmd)
+	log.Debugf("exec: %s\n", cmd)
 	return run(cmd)
 }

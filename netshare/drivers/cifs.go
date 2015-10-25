@@ -3,8 +3,8 @@ package drivers
 import (
 	"bytes"
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"github.com/calavera/dkvolume"
-	"log"
 	"os"
 	"sync"
 )
@@ -34,12 +34,12 @@ func (s cifsDriver) Create(r dkvolume.Request) dkvolume.Response {
 }
 
 func (s cifsDriver) Remove(r dkvolume.Request) dkvolume.Response {
-	log.Printf("Removing volume %s\n", r.Name)
+	log.Debugf("Removing volume %s\n", r.Name)
 	return dkvolume.Response{}
 }
 
 func (s cifsDriver) Path(r dkvolume.Request) dkvolume.Response {
-	log.Printf("Path for %s is at %s\n", r.Name, mountpoint(s.root, r.Name))
+	log.Debugf("Path for %s is at %s\n", r.Name, mountpoint(s.root, r.Name))
 	return dkvolume.Response{Mountpoint: mountpoint(s.root, r.Name)}
 }
 
@@ -50,12 +50,12 @@ func (s cifsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	source := s.fixSource(r.Name)
 
 	if s.mountm.HasMount(dest) && s.mountm.Count(dest) > 0 {
-		log.Printf("Using existing CIFS volume mount: %s\n", dest)
+		log.Infof("Using existing CIFS volume mount: %s\n", dest)
 		s.mountm.Increment(dest)
 		return dkvolume.Response{Mountpoint: dest}
 	}
 
-	log.Printf("Mounting CIFS volume %s on %s, %v\n", source, dest, r.Options)
+	log.Infof("Mounting CIFS volume %s on %s, %v\n", source, dest, r.Options)
 
 	if err := createDest(dest); err != nil {
 		return dkvolume.Response{Err: err.Error()}
@@ -76,14 +76,14 @@ func (s cifsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 
 	if s.mountm.HasMount(dest) {
 		if s.mountm.Count(dest) > 1 {
-			log.Printf("Skipping unmount for %s - in use by other containers\n", dest)
+			log.Infof("Skipping unmount for %s - in use by other containers\n", dest)
 			s.mountm.Decrement(dest)
 			return dkvolume.Response{}
 		}
 		s.mountm.Decrement(dest)
 	}
 
-	log.Printf("Unmounting volume %s from %s\n", source, dest)
+	log.Infof("Unmounting volume %s from %s\n", source, dest)
 
 	if err := run(fmt.Sprintf("umount %s", dest)); err != nil {
 		return dkvolume.Response{Err: err.Error()}
@@ -121,6 +121,6 @@ func (s cifsDriver) mountVolume(source, dest string) error {
 
 	opts.WriteString(fmt.Sprintf("%s %s", source, dest))
 	cmd := fmt.Sprintf("mount -t cifs %s", opts.String())
-	log.Printf("Executing: %s\n", cmd)
+	log.Debugf("Executing: %s\n", cmd)
 	return run(cmd)
 }
