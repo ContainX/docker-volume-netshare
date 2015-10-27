@@ -12,24 +12,25 @@ import (
 )
 
 const (
-	UsernameFlag  = "username"
-	PasswordFlag  = "password"
-	DomainFlag    = "domain"
-	VersionFlag   = "version"
-	BasedirFlag   = "basedir"
-	VerboseFlag   = "verbose"
-	AvailZoneFlag = "az"
-	NoResolveFlag = "noresolve"
-	TCPFlag       = "tcp"
-	PortFlag      = "port"
-	EnvSambaUser  = "NETSHARE_CIFS_USERNAME"
-	EnvSambaPass  = "NETSHARE_CIFS_PASSWORD"
-	EnvSambaWG    = "NETSHARE_CIFS_DOMAIN"
-	EnvNfsVers    = "NETSHARE_NFS_VERSION"
-	EnvTCP        = "NETSHARE_TCP_ENABLED"
-	EnvTCPAddr    = "NETSHARE_TCP_ADDR"
-	PluginAlias   = "netshare"
-	NetshareHelp  = `
+	UsernameFlag   = "username"
+	PasswordFlag   = "password"
+	DomainFlag     = "domain"
+	VersionFlag    = "version"
+	BasedirFlag    = "basedir"
+	VerboseFlag    = "verbose"
+	AvailZoneFlag  = "az"
+	NoResolveFlag  = "noresolve"
+	TCPFlag        = "tcp"
+	PortFlag       = "port"
+	NameServerFlag = "nameserver"
+	EnvSambaUser   = "NETSHARE_CIFS_USERNAME"
+	EnvSambaPass   = "NETSHARE_CIFS_PASSWORD"
+	EnvSambaWG     = "NETSHARE_CIFS_DOMAIN"
+	EnvNfsVers     = "NETSHARE_NFS_VERSION"
+	EnvTCP         = "NETSHARE_TCP_ENABLED"
+	EnvTCPAddr     = "NETSHARE_TCP_ADDR"
+	PluginAlias    = "netshare"
+	NetshareHelp   = `
 	docker-volume-netshare (NFS V3/4, AWS EFS and CIFS Volume Driver Plugin)
 
 Provides docker volume support for NFS v3 and 4, EFS as well as CIFS.  This plugin can be run multiple times to
@@ -84,6 +85,7 @@ func setupFlags() {
 	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]. Can also be set with NETSHARE_NFS_VERSION")
 
 	efsCmd.Flags().String(AvailZoneFlag, "", "AWS Availability zone [default: \"\", looks up via metadata]")
+	efsCmd.Flags().String(NameServerFlag, "", "Custom DNS nameserver.  [default \"\", uses /etc/resolv.conf]")
 	efsCmd.Flags().Bool(NoResolveFlag, false, "Indicates EFS mount sources are IP Addresses vs File System ID")
 }
 
@@ -111,8 +113,8 @@ func execNFS(cmd *cobra.Command, args []string) {
 func execEFS(cmd *cobra.Command, args []string) {
 	az, _ := cmd.Flags().GetString(AvailZoneFlag)
 	resolve, _ := cmd.Flags().GetBool(NoResolveFlag)
-
-	d := drivers.NewEFSDriver(rootForType(drivers.EFS), az, !resolve)
+	ns, _ := cmd.Flags().GetString(NameServerFlag)
+	d := drivers.NewEFSDriver(rootForType(drivers.EFS), az, ns, !resolve)
 	start(drivers.EFS, d)
 }
 

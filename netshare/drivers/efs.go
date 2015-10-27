@@ -4,7 +4,6 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/calavera/dkvolume"
-	"net"
 	"os"
 	"strings"
 	"sync"
@@ -19,12 +18,13 @@ type efsDriver struct {
 	availzone string
 	resolve   bool
 	region    string
+	resolver  *Resolver
 	mountm    *mountManager
 	m         *sync.Mutex
 	dnscache  map[string]string
 }
 
-func NewEFSDriver(root, az string, resolve bool) efsDriver {
+func NewEFSDriver(root, az, nameserver string, resolve bool) efsDriver {
 
 	d := efsDriver{
 		root:     root,
@@ -32,6 +32,10 @@ func NewEFSDriver(root, az string, resolve bool) efsDriver {
 		mountm:   NewVolumeManager(),
 		m:        &sync.Mutex{},
 		dnscache: map[string]string{},
+	}
+
+	if resolve {
+		d.resolver = NewResolver(nameserver)
 	}
 	md, err := fetchAWSMetaData()
 	if err != nil {
@@ -121,10 +125,10 @@ func (e efsDriver) fixSource(name string) string {
 		}
 
 		log.Debugf("Attempting to resolve: %s", uri)
-		if ips, err := net.LookupHost(uri); err == nil {
-			log.Debugf("Resolved Addresses: %v", ips)
-			e.dnscache[uri] = ips[0]
-			return mountSuffix(ips[0])
+		if ip, err := e.resolver.Lookup(uri); err == nil {
+			log.Debugf("Resolved Addresses: %s", ip)
+			e.dnscache[uri] = ip
+			return mountSuffix(ip)
 		} else {
 			log.Errorf("Error during resolve: %s", err.Error())
 			return mountSuffix(uri)
