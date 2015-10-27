@@ -1,0 +1,25 @@
+{
+ "ArtifactsDest": "build",
+ "ConfigVersion": "0.9",
+ "PackageVersion": "0.5",
+ "TaskSettings": {
+  "bintray": {
+   "user": "gondor",
+   "package": "docker-volume-netshare",
+   "repository": "docker",
+   "subject": "pacesys"
+  },
+  "debs": {
+      "metadata": {
+        "description": "Docker Volume Plugin - Netshare",
+        "maintainer": "Jeremy Unruh (https://github.com/gondor)"
+      },
+      "metadata-deb": {
+        "Homepage": "https://github.com/gondor/docker-volume-netshare"
+      },
+      "other-mapped-files": {
+        "/": "support/sysvinit-debian/"
+      }
+    }
+ }
+}
