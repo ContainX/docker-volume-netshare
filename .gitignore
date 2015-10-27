@@ -24,7 +24,7 @@ _testmain.go
 *.prof
 
 # App and IDEA
-docker-volume-netshare
+/docker-volume-netshare
 docker-volume-netshare.iml
 .idea
 tests/
