@@ -4,6 +4,18 @@
 
 Mount NFS v3/4, AWS EFS or CIFS inside your docker containers.  This is a docker plugin which enables these volume types to be directly mounted within a container.
 
+## NFS Prerequisites on Linux
+
+NFS needs to be installed on Linux systems in order to properly mount NFS mounts.  
+
+- For Ubuntu/Debian: `sudo apt-get install -y nfs-common`
+- For RHEL/CentOS: `sudo yum install -y nfs-utils`
+
+It is recommend to try mounting an NFS volume to eliminate any configuration issues prior to running the plugin:
+```
+sudo mount -t nfs4 1.1.1.1:/mountpoint /target/mount
+```
+
 ## Installation
 
 #### From Source
