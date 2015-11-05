@@ -27,6 +27,10 @@ func NewNFSDriver(root string, version int) nfsDriver {
 }
 
 func (n nfsDriver) Create(r dkvolume.Request) dkvolume.Response {
+	dest := mountpoint(n.root, r.Name)
+	if err := createDest(dest); err != nil {
+		return dkvolume.Response{Err: err.Error()}
+	}
 	return dkvolume.Response{}
 }
 
