@@ -1,7 +1,7 @@
 {
  "ArtifactsDest": "build",
  "ConfigVersion": "0.9",
- "PackageVersion": "0.5",
+ "PackageVersion": "0.6",
  "TaskSettings": {
   "bintray": {
    "user": "gondor",
