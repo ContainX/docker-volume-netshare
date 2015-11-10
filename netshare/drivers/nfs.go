@@ -27,20 +27,22 @@ func NewNFSDriver(root string, version int) nfsDriver {
 }
 
 func (n nfsDriver) Create(r dkvolume.Request) dkvolume.Response {
+	log.Debugf("Create: %s, %v", r.Name, r.Options)
 	dest := mountpoint(n.root, r.Name)
 	if err := createDest(dest); err != nil {
 		return dkvolume.Response{Err: err.Error()}
 	}
+	n.mountm.Create(dest, r.Name, r.Options)
 	return dkvolume.Response{}
 }
 
 func (n nfsDriver) Remove(r dkvolume.Request) dkvolume.Response {
-	log.Debugf("Removing volume %s\n", r.Name)
+	log.Debugf("Removing volume %s", r.Name)
 	return dkvolume.Response{}
 }
 
 func (n nfsDriver) Path(r dkvolume.Request) dkvolume.Response {
-	log.Debugf("Path for %s is at %s\n", r.Name, mountpoint(n.root, r.Name))
+	log.Debugf("Path for %s is at %s", r.Name, mountpoint(n.root, r.Name))
 	return dkvolume.Response{Mountpoint: mountpoint(n.root, r.Name)}
 }
 
@@ -51,12 +53,12 @@ func (n nfsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	source := n.fixSource(r.Name)
 
 	if n.mountm.HasMount(dest) && n.mountm.Count(dest) > 0 {
-		log.Infof("Using existing NFS volume mount: %s\n", dest)
+		log.Infof("Using existing NFS volume mount: %s", dest)
 		n.mountm.Increment(dest)
 		return dkvolume.Response{Mountpoint: dest}
 	}
 
-	log.Infof("Mounting NFS volume %s on %s\n", source, dest)
+	log.Infof("Mounting NFS volume %s on %s", source, dest)
 
 	if err := createDest(dest); err != nil {
 		return dkvolume.Response{Err: err.Error()}
@@ -77,14 +79,14 @@ func (n nfsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 
 	if n.mountm.HasMount(dest) {
 		if n.mountm.Count(dest) > 1 {
-			log.Printf("Skipping unmount for %s - in use by other containers\n", dest)
+			log.Printf("Skipping unmount for %s - in use by other containers", dest)
 			n.mountm.Decrement(dest)
 			return dkvolume.Response{}
 		}
 		n.mountm.Decrement(dest)
 	}
 
-	log.Infof("Unmounting volume %s from %s\n", source, dest)
+	log.Infof("Unmounting volume %s from %s", source, dest)
 
 	if err := run(fmt.Sprintf("umount %s", dest)); err != nil {
 		return dkvolume.Response{Err: err.Error()}
