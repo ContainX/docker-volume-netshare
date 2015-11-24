@@ -5,7 +5,10 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/calavera/dkvolume"
+	"github.com/dickeyxxx/netrc"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -17,22 +20,36 @@ const (
 
 type cifsDriver struct {
 	root   string
+	creds  *cifsCreds
+	netrc  *netrc.Netrc
+	mountm *mountManager
+	m      *sync.Mutex
+}
+
+type cifsCreds struct {
 	user   string
 	pass   string
 	domain string
-	mountm *mountManager
-	m      *sync.Mutex
 }
 
 func NewCIFSDriver(root, user, pass, domain string) cifsDriver {
 	d := cifsDriver{
 		root:   root,
-		user:   user,
-		domain: domain,
+		creds:  &cifsCreds{user: user, pass: pass, domain: domain},
+		netrc:  parseNetRC(),
 		mountm: NewVolumeManager(),
 		m:      &sync.Mutex{},
 	}
 	return d
+}
+
+func parseNetRC() *netrc.Netrc {
+	if n, err := netrc.Parse(filepath.Join(os.Getenv("HOME"), ".netrc")); err == nil {
+		return n
+	} else {
+		log.Warnf("Error: %s", err.Error())
+	}
+	return nil
 }
 
 func (s cifsDriver) Create(r dkvolume.Request) dkvolume.Response {
@@ -60,6 +77,7 @@ func (s cifsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	defer s.m.Unlock()
 	dest := mountpoint(s.root, r.Name)
 	source := s.fixSource(r.Name)
+	host := parseHost(r.Name)
 	log.Infof("Mount: %s, %v", r.Name, r.Options)
 
 	if s.mountm.HasMount(dest) && s.mountm.Count(dest) > 0 {
@@ -74,7 +92,7 @@ func (s cifsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 		return dkvolume.Response{Err: err.Error()}
 	}
 
-	if err := s.mountVolume(source, dest); err != nil {
+	if err := s.mountVolume(source, dest, s.getCreds(host)); err != nil {
 		return dkvolume.Response{Err: err.Error()}
 	}
 	s.mountm.Add(dest, r.Name)
@@ -113,13 +131,21 @@ func (s cifsDriver) fixSource(name string) string {
 	return "//" + name
 }
 
-func (s cifsDriver) mountVolume(source, dest string) error {
+func parseHost(name string) string {
+	if strings.ContainsAny(name, "/") {
+		s := strings.Split(name, "/")
+		return s[0]
+	}
+	return name
+}
+
+func (s cifsDriver) mountVolume(source, dest string, creds *cifsCreds) error {
 	var opts bytes.Buffer
 
 	opts.WriteString("-o ")
-	var user = s.user
-	var pass = s.pass
-	var domain = s.domain
+	var user = creds.user
+	var pass = creds.pass
+	var domain = creds.domain
 
 	if s.mountm.HasOptions(dest) {
 		mopts := s.mountm.GetOptions(dest)
@@ -150,6 +176,21 @@ func (s cifsDriver) mountVolume(source, dest string) error {
 
 	opts.WriteString(fmt.Sprintf("%s %s", source, dest))
 	cmd := fmt.Sprintf("mount -t cifs %s", opts.String())
-	log.Debugf("Executing: %s\n", cmd)
+	log.Debugf("Executing: %s\n", strings.Replace(cmd, pass, "", 1))
 	return run(cmd)
+}
+
+func (s cifsDriver) getCreds(host string) *cifsCreds {
+	log.Debugf("GetCreds: host=%s, netrc=%v", host, s.netrc)
+	if s.netrc != nil {
+		m := s.netrc.Machine(host)
+		if m != nil {
+			return &cifsCreds{
+				user:   m.Get("username"),
+				pass:   m.Get("password"),
+				domain: m.Get("domain"),
+			}
+		}
+	}
+	return s.creds
 }
