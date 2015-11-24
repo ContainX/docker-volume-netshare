@@ -101,11 +101,13 @@ The method below will install the sysvinit and /etc/default options that can be 
   $ docker run -it --volume-driver=cifs -v cifshost/share:/mount ubuntu /bin/bash
 ```
 
-#### .NetRC support
+##### .NetRC support
 
-.netrc is fully support eliminating users and passwords to be specified in step 1.  To use .netrc do the following steps:
+.NetRC is fully support eliminating users and passwords to be specified in step 1.  To use .netrc do the following steps:
 
-**1. Create a /root/.netrc file (since netshare needs to be run as a root user).  Add the host and credential mappings.  See example:
+**1. Create a /root/.netrc file (since netshare needs to be run as a root user).  Add the host and credential mappings.**  
+
+See example:
 
 ```
   //.netrc
@@ -115,7 +117,7 @@ The method below will install the sysvinit and /etc/default options that can be 
        domain    optional
 ```
 
-**2. Run the plugin
+**2. Run the plugin**
 
 ```
   $ sudo docker-volume-netshare cifs
