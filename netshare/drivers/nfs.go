@@ -3,7 +3,7 @@ package drivers
 import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/calavera/dkvolume"
+	"github.com/docker/go-plugins-helpers/volume"
 	"os"
 	"strings"
 	"sync"
@@ -26,27 +26,27 @@ func NewNFSDriver(root string, version int) nfsDriver {
 	return d
 }
 
-func (n nfsDriver) Create(r dkvolume.Request) dkvolume.Response {
+func (n nfsDriver) Create(r volume.Request) volume.Response {
 	log.Debugf("Create: %s, %v", r.Name, r.Options)
 	dest := mountpoint(n.root, r.Name)
 	if err := createDest(dest); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 	n.mountm.Create(dest, r.Name, r.Options)
-	return dkvolume.Response{}
+	return volume.Response{}
 }
 
-func (n nfsDriver) Remove(r dkvolume.Request) dkvolume.Response {
+func (n nfsDriver) Remove(r volume.Request) volume.Response {
 	log.Debugf("Removing volume %s", r.Name)
-	return dkvolume.Response{}
+	return volume.Response{}
 }
 
-func (n nfsDriver) Path(r dkvolume.Request) dkvolume.Response {
+func (n nfsDriver) Path(r volume.Request) volume.Response {
 	log.Debugf("Path for %s is at %s", r.Name, mountpoint(n.root, r.Name))
-	return dkvolume.Response{Mountpoint: mountpoint(n.root, r.Name)}
+	return volume.Response{Mountpoint: mountpoint(n.root, r.Name)}
 }
 
-func (n nfsDriver) Mount(r dkvolume.Request) dkvolume.Response {
+func (n nfsDriver) Mount(r volume.Request) volume.Response {
 	n.m.Lock()
 	defer n.m.Unlock()
 	dest := mountpoint(n.root, r.Name)
@@ -55,23 +55,23 @@ func (n nfsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	if n.mountm.HasMount(dest) && n.mountm.Count(dest) > 0 {
 		log.Infof("Using existing NFS volume mount: %s", dest)
 		n.mountm.Increment(dest)
-		return dkvolume.Response{Mountpoint: dest}
+		return volume.Response{Mountpoint: dest}
 	}
 
 	log.Infof("Mounting NFS volume %s on %s", source, dest)
 
 	if err := createDest(dest); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 
 	if err := mountVolume(source, dest, n.version); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 	n.mountm.Add(dest, r.Name)
-	return dkvolume.Response{Mountpoint: dest}
+	return volume.Response{Mountpoint: dest}
 }
 
-func (n nfsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
+func (n nfsDriver) Unmount(r volume.Request) volume.Response {
 	n.m.Lock()
 	defer n.m.Unlock()
 	dest := mountpoint(n.root, r.Name)
@@ -81,7 +81,7 @@ func (n nfsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 		if n.mountm.Count(dest) > 1 {
 			log.Printf("Skipping unmount for %s - in use by other containers", dest)
 			n.mountm.Decrement(dest)
-			return dkvolume.Response{}
+			return volume.Response{}
 		}
 		n.mountm.Decrement(dest)
 	}
@@ -89,14 +89,14 @@ func (n nfsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 	log.Infof("Unmounting volume %s from %s", source, dest)
 
 	if err := run(fmt.Sprintf("umount %s", dest)); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 
 	if err := os.RemoveAll(dest); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 
-	return dkvolume.Response{}
+	return volume.Response{}
 }
 
 func (n nfsDriver) fixSource(name string) string {

@@ -3,7 +3,7 @@ package netshare
 import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/calavera/dkvolume"
+	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/gondor/docker-volume-netshare/netshare/drivers"
 	"github.com/spf13/cobra"
 	"os"
@@ -73,7 +73,7 @@ func Execute() {
 }
 
 func setupFlags() {
-	rootCmd.PersistentFlags().StringVar(&baseDir, BasedirFlag, filepath.Join(dkvolume.DefaultDockerRootDirectory, PluginAlias), "Mounted volume base directory")
+	rootCmd.PersistentFlags().StringVar(&baseDir, BasedirFlag, filepath.Join(volume.DefaultDockerRootDirectory, PluginAlias), "Mounted volume base directory")
 	rootCmd.PersistentFlags().Bool(TCPFlag, false, "Bind to TCP rather than Unix sockets.  Can also be set via NETSHARE_TCP_ENABLED")
 	rootCmd.PersistentFlags().String(PortFlag, ":8877", "TCP Port if --tcp flag is true.  :PORT for all interfaces or ADDRESS:PORT to bind.")
 	rootCmd.PersistentFlags().Bool(VerboseFlag, false, "Turns on verbose logging")
@@ -139,8 +139,8 @@ func rootForType(dt drivers.DriverType) string {
 	return filepath.Join(baseDir, dt.String())
 }
 
-func start(dt drivers.DriverType, driver dkvolume.Driver) {
-	h := dkvolume.NewHandler(driver)
+func start(dt drivers.DriverType, driver volume.Driver) {
+	h := volume.NewHandler(driver)
 	if isTCPEnabled() {
 		addr := os.Getenv(EnvTCPAddr)
 		if addr == "" {

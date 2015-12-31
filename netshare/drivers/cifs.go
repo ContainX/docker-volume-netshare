@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/calavera/dkvolume"
+	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/dickeyxxx/netrc"
 	"os"
 	"path/filepath"
@@ -52,27 +52,27 @@ func parseNetRC() *netrc.Netrc {
 	return nil
 }
 
-func (s cifsDriver) Create(r dkvolume.Request) dkvolume.Response {
+func (s cifsDriver) Create(r volume.Request) volume.Response {
 	log.Debugf("Create: %s, %v", r.Name, r.Options)
 	dest := mountpoint(s.root, r.Name)
 	if err := createDest(dest); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 	s.mountm.Create(dest, r.Name, r.Options)
-	return dkvolume.Response{}
+	return volume.Response{}
 }
 
-func (s cifsDriver) Remove(r dkvolume.Request) dkvolume.Response {
+func (s cifsDriver) Remove(r volume.Request) volume.Response {
 	log.Debugf("Removing volume %s", r.Name)
-	return dkvolume.Response{}
+	return volume.Response{}
 }
 
-func (s cifsDriver) Path(r dkvolume.Request) dkvolume.Response {
+func (s cifsDriver) Path(r volume.Request) volume.Response {
 	log.Debugf("Path for %s is at %s", r.Name, mountpoint(s.root, r.Name))
-	return dkvolume.Response{Mountpoint: mountpoint(s.root, r.Name)}
+	return volume.Response{Mountpoint: mountpoint(s.root, r.Name)}
 }
 
-func (s cifsDriver) Mount(r dkvolume.Request) dkvolume.Response {
+func (s cifsDriver) Mount(r volume.Request) volume.Response {
 	s.m.Lock()
 	defer s.m.Unlock()
 	dest := mountpoint(s.root, r.Name)
@@ -83,23 +83,23 @@ func (s cifsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	if s.mountm.HasMount(dest) && s.mountm.Count(dest) > 0 {
 		log.Infof("Using existing CIFS volume mount: %s", dest)
 		s.mountm.Increment(dest)
-		return dkvolume.Response{Mountpoint: dest}
+		return volume.Response{Mountpoint: dest}
 	}
 
 	log.Infof("Mounting CIFS volume %s on %s", source, dest)
 
 	if err := createDest(dest); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 
 	if err := s.mountVolume(source, dest, s.getCreds(host)); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 	s.mountm.Add(dest, r.Name)
-	return dkvolume.Response{Mountpoint: dest}
+	return volume.Response{Mountpoint: dest}
 }
 
-func (s cifsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
+func (s cifsDriver) Unmount(r volume.Request) volume.Response {
 	s.m.Lock()
 	defer s.m.Unlock()
 	dest := mountpoint(s.root, r.Name)
@@ -109,7 +109,7 @@ func (s cifsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 		if s.mountm.Count(dest) > 1 {
 			log.Infof("Skipping unmount for %s - in use by other containers", dest)
 			s.mountm.Decrement(dest)
-			return dkvolume.Response{}
+			return volume.Response{}
 		}
 		s.mountm.Decrement(dest)
 	}
@@ -117,14 +117,14 @@ func (s cifsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 	log.Infof("Unmounting volume %s from %s", source, dest)
 
 	if err := run(fmt.Sprintf("umount %s", dest)); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 
 	if err := os.RemoveAll(dest); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 
-	return dkvolume.Response{}
+	return volume.Response{}
 }
 
 func (s cifsDriver) fixSource(name string) string {

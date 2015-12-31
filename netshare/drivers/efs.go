@@ -3,7 +3,7 @@ package drivers
 import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/calavera/dkvolume"
+	"github.com/docker/go-plugins-helpers/volume"
 	"os"
 	"strings"
 	"sync"
@@ -49,27 +49,27 @@ func NewEFSDriver(root, az, nameserver string, resolve bool) efsDriver {
 	return d
 }
 
-func (e efsDriver) Create(r dkvolume.Request) dkvolume.Response {
+func (e efsDriver) Create(r volume.Request) volume.Response {
 	log.Debugf("Create: %s, %v", r.Name, r.Options)
 	dest := mountpoint(e.root, r.Name)
 	if err := createDest(dest); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 	e.mountm.Create(dest, r.Name, r.Options)
-	return dkvolume.Response{}
+	return volume.Response{}
 }
 
-func (e efsDriver) Remove(r dkvolume.Request) dkvolume.Response {
+func (e efsDriver) Remove(r volume.Request) volume.Response {
 	log.Debugf("Removing volume %s", r.Name)
-	return dkvolume.Response{}
+	return volume.Response{}
 }
 
-func (e efsDriver) Path(r dkvolume.Request) dkvolume.Response {
+func (e efsDriver) Path(r volume.Request) volume.Response {
 	log.Debugf("Path for %s is at %s", r.Name, mountpoint(e.root, r.Name))
-	return dkvolume.Response{Mountpoint: mountpoint(e.root, r.Name)}
+	return volume.Response{Mountpoint: mountpoint(e.root, r.Name)}
 }
 
-func (e efsDriver) Mount(r dkvolume.Request) dkvolume.Response {
+func (e efsDriver) Mount(r volume.Request) volume.Response {
 	e.m.Lock()
 	defer e.m.Unlock()
 	dest := mountpoint(e.root, r.Name)
@@ -78,23 +78,23 @@ func (e efsDriver) Mount(r dkvolume.Request) dkvolume.Response {
 	if e.mountm.HasMount(dest) && e.mountm.Count(dest) > 0 {
 		log.Infof("Using existing EFS volume mount: %s", dest)
 		e.mountm.Increment(dest)
-		return dkvolume.Response{Mountpoint: dest}
+		return volume.Response{Mountpoint: dest}
 	}
 
 	log.Infof("Mounting EFS volume %s on %s", source, dest)
 
 	if err := createDest(dest); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 
 	if err := mountVolume(source, dest, 4); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 	e.mountm.Add(dest, r.Name)
-	return dkvolume.Response{Mountpoint: dest}
+	return volume.Response{Mountpoint: dest}
 }
 
-func (e efsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
+func (e efsDriver) Unmount(r volume.Request) volume.Response {
 	e.m.Lock()
 	defer e.m.Unlock()
 	dest := mountpoint(e.root, r.Name)
@@ -104,7 +104,7 @@ func (e efsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 		if e.mountm.Count(dest) > 1 {
 			log.Infof("Skipping unmount for %s - in use by other containers", dest)
 			e.mountm.Decrement(dest)
-			return dkvolume.Response{}
+			return volume.Response{}
 		}
 		e.mountm.Decrement(dest)
 	}
@@ -112,14 +112,14 @@ func (e efsDriver) Unmount(r dkvolume.Request) dkvolume.Response {
 	log.Infof("Unmounting volume %s from %s", source, dest)
 
 	if err := run(fmt.Sprintf("umount %s", dest)); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 
 	if err := os.RemoveAll(dest); err != nil {
-		return dkvolume.Response{Err: err.Error()}
+		return volume.Response{Err: err.Error()}
 	}
 
-	return dkvolume.Response{}
+	return volume.Response{}
 }
 
 func (e efsDriver) fixSource(name string) string {

@@ -3,7 +3,7 @@ GO_XC = goxc -os="linux freebsd openbsd netbsd"
 
 GOXC_FILE = .goxc.local.json
 
-all: deps
+all: deps compile
 
 compile: goxc
 
