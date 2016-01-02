@@ -27,15 +27,16 @@ type cifsDriver struct {
 }
 
 type cifsCreds struct {
-	user   string
-	pass   string
-	domain string
+	user     string
+	pass	 string
+	domain   string
+	security string
 }
 
-func NewCIFSDriver(root, user, pass, domain string) cifsDriver {
+func NewCIFSDriver(root, user, pass, domain, security string) cifsDriver {
 	d := cifsDriver{
 		root:   root,
-		creds:  &cifsCreds{user: user, pass: pass, domain: domain},
+		creds:  &cifsCreds{user: user, pass: pass, domain: domain, security : security},
 		netrc:  parseNetRC(),
 		mountm: NewVolumeManager(),
 		m:      &sync.Mutex{},
@@ -146,6 +147,7 @@ func (s cifsDriver) mountVolume(source, dest string, creds *cifsCreds) error {
 	var user = creds.user
 	var pass = creds.pass
 	var domain = creds.domain
+	var security = creds.security
 
 	if s.mountm.HasOptions(dest) {
 		mopts := s.mountm.GetOptions(dest)
@@ -172,6 +174,11 @@ func (s cifsDriver) mountVolume(source, dest string, creds *cifsCreds) error {
 	if domain != "" {
 		opts.WriteString(fmt.Sprintf("domain=%s,", domain))
 	}
+
+	if security != "" {
+		opts.WriteString(fmt.Sprintf("sec=%s,", security))
+	}
+
 	opts.WriteString("rw ")
 
 	opts.WriteString(fmt.Sprintf("%s %s", source, dest))
@@ -186,9 +193,10 @@ func (s cifsDriver) getCreds(host string) *cifsCreds {
 		m := s.netrc.Machine(host)
 		if m != nil {
 			return &cifsCreds{
-				user:   m.Get("username"),
-				pass:   m.Get("password"),
-				domain: m.Get("domain"),
+				user:     m.Get("username"),
+				pass:     m.Get("password"),
+				domain:   m.Get("domain"),
+				security: m.Get("security"),
 			}
 		}
 	}

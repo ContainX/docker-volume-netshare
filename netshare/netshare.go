@@ -15,6 +15,7 @@ const (
 	UsernameFlag   = "username"
 	PasswordFlag   = "password"
 	DomainFlag     = "domain"
+	SecurityFlag   = "security"
 	VersionFlag    = "version"
 	BasedirFlag    = "basedir"
 	VerboseFlag    = "verbose"
@@ -26,6 +27,7 @@ const (
 	EnvSambaUser   = "NETSHARE_CIFS_USERNAME"
 	EnvSambaPass   = "NETSHARE_CIFS_PASSWORD"
 	EnvSambaWG     = "NETSHARE_CIFS_DOMAIN"
+	EnvSambaSec    = "NETSHARE_CIFS_SECURITY"
 	EnvNfsVers     = "NETSHARE_NFS_VERSION"
 	EnvTCP         = "NETSHARE_TCP_ENABLED"
 	EnvTCPAddr     = "NETSHARE_TCP_ADDR"
@@ -122,8 +124,9 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	user := typeOrEnv(cmd, UsernameFlag, EnvSambaUser)
 	pass := typeOrEnv(cmd, PasswordFlag, EnvSambaPass)
 	domain := typeOrEnv(cmd, DomainFlag, EnvSambaWG)
+	security := typeOrEnv(cmd, SecurityFlag, EnvSambaSec)
 
-	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain)
+	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain, security)
 	start(drivers.CIFS, d)
 }
 
