@@ -16,6 +16,7 @@ const (
 	UsernameOpt = "username"
 	PasswordOpt = "password"
 	DomainOpt   = "domain"
+	SecurityOpt = "security"
 )
 
 type cifsDriver struct {
@@ -159,6 +160,9 @@ func (s cifsDriver) mountVolume(source, dest string, creds *cifsCreds) error {
 		}
 		if v, found := mopts[DomainOpt]; found {
 			domain = v
+		}
+		if v, found := mopts[SecurityOpt]; found {
+			security = v
 		}
 	}
 
