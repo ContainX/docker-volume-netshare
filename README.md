@@ -91,7 +91,7 @@ The method below will install the sysvinit and /etc/default options that can be 
 **1. Run the plugin - can be added to systemd or run in the background**
 
 ```
-  $ sudo docker-volume-netshare cifs --username user --password pass --domain domain
+  $ sudo docker-volume-netshare cifs --username user --password pass --domain domain --security security
 ```
 
 **2. Launch a container**
@@ -115,6 +115,7 @@ See example:
        username  jeremy
        password  somepass
        domain    optional
+       security  optional
 ```
 
 **2. Run the plugin**
@@ -146,7 +147,7 @@ options and other info can be eliminated when running a container.
 This will create a new volume via the Docker daemon which will call `Create` in netshare passing in the corresponding user, pass and domain info.
 
 ```
-  $ docker volume create -d cifs --name cifshost/share --opt username=user --opt password=pass --opt domain=domain
+  $ docker volume create -d cifs --name cifshost/share --opt username=user --opt password=pass --opt domain=domain --opt security=security
 ```
 
 **3. Launch a container**
@@ -155,6 +156,10 @@ This will create a new volume via the Docker daemon which will call `Create` in 
   // cifs/share matches the volume as defined in Step #2 using docker volume create
   $ docker run -it -v cifshost/share:/mount ubuntu /bin/bash
 ```
+
+#### Security Option
+Some CIFS servers may require a specific security mode to connect. The ``security`` option defines the ``sec`` option that is passed to ``mount.cifs``. [More information about available ``sec`` options](https://www.samba.org/samba/docs/man/manpages-3/mount.cifs.8.html).
+e.g.: Apple Time Capsule's require the security mode ``ntlm``.
 
 ## License
 

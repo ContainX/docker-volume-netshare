@@ -15,6 +15,7 @@ const (
 	UsernameFlag   = "username"
 	PasswordFlag   = "password"
 	DomainFlag     = "domain"
+	SecurityFlag   = "security"
 	VersionFlag    = "version"
 	BasedirFlag    = "basedir"
 	VerboseFlag    = "verbose"
@@ -26,6 +27,7 @@ const (
 	EnvSambaUser   = "NETSHARE_CIFS_USERNAME"
 	EnvSambaPass   = "NETSHARE_CIFS_PASSWORD"
 	EnvSambaWG     = "NETSHARE_CIFS_DOMAIN"
+	EnvSambaSec    = "NETSHARE_CIFS_SECURITY"
 	EnvNfsVers     = "NETSHARE_NFS_VERSION"
 	EnvTCP         = "NETSHARE_TCP_ENABLED"
 	EnvTCPAddr     = "NETSHARE_TCP_ADDR"
@@ -81,6 +83,7 @@ func setupFlags() {
 	cifsCmd.Flags().StringP(UsernameFlag, "u", "", "Username to use for mounts.  Can also set environment NETSHARE_CIFS_USERNAME")
 	cifsCmd.Flags().StringP(PasswordFlag, "p", "", "Password to use for mounts.  Can also set environment NETSHARE_CIFS_PASSWORD")
 	cifsCmd.Flags().StringP(DomainFlag, "d", "", "Domain to use for mounts.  Can also set environment NETSHARE_CIFS_DOMAIN")
+	cifsCmd.Flags().StringP(SecurityFlag, "s", "", "Security mode to use for mounts (mount.cifs's sec option). Can also set environment NETSHARE_CIFS_SECURITY.")
 
 	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]. Can also be set with NETSHARE_NFS_VERSION")
 
@@ -122,8 +125,9 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	user := typeOrEnv(cmd, UsernameFlag, EnvSambaUser)
 	pass := typeOrEnv(cmd, PasswordFlag, EnvSambaPass)
 	domain := typeOrEnv(cmd, DomainFlag, EnvSambaWG)
+	security := typeOrEnv(cmd, SecurityFlag, EnvSambaSec)
 
-	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain)
+	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain, security)
 	start(drivers.CIFS, d)
 }
 
