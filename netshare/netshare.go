@@ -15,6 +15,7 @@ const (
 	UsernameFlag   = "username"
 	PasswordFlag   = "password"
 	DomainFlag     = "domain"
+	SecurityFlag   = "security"
 	VersionFlag    = "version"
 	BasedirFlag    = "basedir"
 	VerboseFlag    = "verbose"
@@ -27,6 +28,7 @@ const (
 	EnvSambaUser   = "NETSHARE_CIFS_USERNAME"
 	EnvSambaPass   = "NETSHARE_CIFS_PASSWORD"
 	EnvSambaWG     = "NETSHARE_CIFS_DOMAIN"
+	EnvSambaSec    = "NETSHARE_CIFS_SECURITY"
 	EnvNfsVers     = "NETSHARE_NFS_VERSION"
 	EnvTCP         = "NETSHARE_TCP_ENABLED"
 	EnvTCPAddr     = "NETSHARE_TCP_ADDR"
@@ -82,7 +84,9 @@ func setupFlags() {
 	cifsCmd.Flags().StringP(UsernameFlag, "u", "", "Username to use for mounts.  Can also set environment NETSHARE_CIFS_USERNAME")
 	cifsCmd.Flags().StringP(PasswordFlag, "p", "", "Password to use for mounts.  Can also set environment NETSHARE_CIFS_PASSWORD")
 	cifsCmd.Flags().StringP(DomainFlag, "d", "", "Domain to use for mounts.  Can also set environment NETSHARE_CIFS_DOMAIN")
-	cifsCmd.Flags().StringP(NetRCFlag, "", os.Getenv("HOME"), "Path to .netrc file, default is user $HOME")
+	cifsCmd.Flags().StringP(SecurityFlag, "s", "", "Security mode to use for mounts (mount.cifs's sec option). Can also set environment NETSHARE_CIFS_SECURITY.")
+	cifsCmd.Flags().StringP(NetRCFlag, "", os.Getenv("HOME"), "The default .netrc location.  Default is the user.home directory")
+
 	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]. Can also be set with NETSHARE_NFS_VERSION")
 
 	efsCmd.Flags().String(AvailZoneFlag, "", "AWS Availability zone [default: \"\", looks up via metadata]")
@@ -123,9 +127,10 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	user := typeOrEnv(cmd, UsernameFlag, EnvSambaUser)
 	pass := typeOrEnv(cmd, PasswordFlag, EnvSambaPass)
 	domain := typeOrEnv(cmd, DomainFlag, EnvSambaWG)
+	security := typeOrEnv(cmd, SecurityFlag, EnvSambaSec)
 	netrc, _ := cmd.Flags().GetString(NetRCFlag)
 
-	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain, netrc)
+	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain, security, netrc)
 	start(drivers.CIFS, d)
 }
 

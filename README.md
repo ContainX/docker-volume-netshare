@@ -29,9 +29,9 @@ $ go build
 
 #### From Binaries
 
-* Architecture i386 [ [linux](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_linux_386.tar.gz?direct) / [netbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_netbsd_386.zip?direct) / [freebsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_freebsd_386.zip?direct) / [openbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_openbsd_386.zip?direct) ]
-* Architecture amd64 [ [linux](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_linux_amd64.tar.gz?direct) / [netbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_netbsd_amd64.zip?direct) / [freebsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_freebsd_amd64.zip?direct) / [openbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_openbsd_amd64.zip?direct) ]
-* Debian Package [ [i386](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_i386.deb?direct) ] / [amd64](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_amd64.deb?direct) ] ]
+* Architecture i386 [ [linux](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_linux_386.tar.gz?direct) / [netbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_netbsd_386.zip?direct) / [freebsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_freebsd_386.zip?direct) / [openbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_openbsd_386.zip?direct) ]
+* Architecture amd64 [ [linux](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_linux_amd64.tar.gz?direct) / [netbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_netbsd_amd64.zip?direct) / [freebsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_freebsd_amd64.zip?direct) / [openbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_openbsd_amd64.zip?direct) ]
+* Debian Package [ [i386](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_i386.deb?direct) ] / [amd64](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_amd64.deb?direct) ] ]
 
 #### On Ubuntu / Debian
 
@@ -40,8 +40,8 @@ The method below will install the sysvinit and /etc/default options that can be 
 1. Install the Package
 
 ```
-  $ wget https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.9_i386.deb
-  $ sudo dpkg -i docker-volume-netshare_0.9_i386.deb
+  $ wget https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.10_i386.deb
+  $ sudo dpkg -i docker-volume-netshare_0.10_i386.deb
 ```
 
 2. Modify the startup options in `/etc/default/docker-volume-netshare`
@@ -91,7 +91,7 @@ The method below will install the sysvinit and /etc/default options that can be 
 **1. Run the plugin - can be added to systemd or run in the background**
 
 ```
-  $ sudo docker-volume-netshare cifs --username user --password pass --domain domain
+  $ sudo docker-volume-netshare cifs --username user --password pass --domain domain --security security
 ```
 
 **2. Launch a container**
@@ -115,6 +115,7 @@ See example:
        username  jeremy
        password  somepass
        domain    optional
+       security  optional
 ```
 
 **2. Run the plugin**
@@ -146,7 +147,7 @@ options and other info can be eliminated when running a container.
 This will create a new volume via the Docker daemon which will call `Create` in netshare passing in the corresponding user, pass and domain info.
 
 ```
-  $ docker volume create -d cifs --name cifshost/share --opt username=user --opt password=pass --opt domain=domain
+  $ docker volume create -d cifs --name cifshost/share --opt username=user --opt password=pass --opt domain=domain --opt security=security
 ```
 
 **3. Launch a container**
@@ -155,6 +156,10 @@ This will create a new volume via the Docker daemon which will call `Create` in 
   // cifs/share matches the volume as defined in Step #2 using docker volume create
   $ docker run -it -v cifshost/share:/mount ubuntu /bin/bash
 ```
+
+#### Security Option
+Some CIFS servers may require a specific security mode to connect. The ``security`` option defines the ``sec`` option that is passed to ``mount.cifs``. [More information about available ``sec`` options](https://www.samba.org/samba/docs/man/manpages-3/mount.cifs.8.html).
+e.g.: Apple Time Capsule's require the security mode ``ntlm``.
 
 ## License
 
