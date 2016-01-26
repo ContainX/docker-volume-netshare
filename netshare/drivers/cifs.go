@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/dickeyxxx/netrc"
+	"github.com/docker/go-plugins-helpers/volume"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,19 +32,19 @@ type cifsCreds struct {
 	domain string
 }
 
-func NewCIFSDriver(root, user, pass, domain string) cifsDriver {
+func NewCIFSDriver(root, user, pass, domain, netrc_path string) cifsDriver {
 	d := cifsDriver{
 		root:   root,
 		creds:  &cifsCreds{user: user, pass: pass, domain: domain},
-		netrc:  parseNetRC(),
+		netrc:  parseNetRC(netrc_path),
 		mountm: NewVolumeManager(),
 		m:      &sync.Mutex{},
 	}
 	return d
 }
 
-func parseNetRC() *netrc.Netrc {
-	if n, err := netrc.Parse(filepath.Join(os.Getenv("HOME"), ".netrc")); err == nil {
+func parseNetRC(path string) *netrc.Netrc {
+	if n, err := netrc.Parse(filepath.Join(path, ".netrc")); err == nil {
 		return n
 	} else {
 		log.Warnf("Error: %s", err.Error())

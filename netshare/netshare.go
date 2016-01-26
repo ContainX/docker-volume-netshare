@@ -20,6 +20,7 @@ const (
 	VerboseFlag    = "verbose"
 	AvailZoneFlag  = "az"
 	NoResolveFlag  = "noresolve"
+	NetRCFlag      = "netrc"
 	TCPFlag        = "tcp"
 	PortFlag       = "port"
 	NameServerFlag = "nameserver"
@@ -81,7 +82,7 @@ func setupFlags() {
 	cifsCmd.Flags().StringP(UsernameFlag, "u", "", "Username to use for mounts.  Can also set environment NETSHARE_CIFS_USERNAME")
 	cifsCmd.Flags().StringP(PasswordFlag, "p", "", "Password to use for mounts.  Can also set environment NETSHARE_CIFS_PASSWORD")
 	cifsCmd.Flags().StringP(DomainFlag, "d", "", "Domain to use for mounts.  Can also set environment NETSHARE_CIFS_DOMAIN")
-
+	cifsCmd.Flags().StringP(NetRCFlag, "", os.Getenv("HOME"), "Path to .netrc file, default is user $HOME")
 	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]. Can also be set with NETSHARE_NFS_VERSION")
 
 	efsCmd.Flags().String(AvailZoneFlag, "", "AWS Availability zone [default: \"\", looks up via metadata]")
@@ -122,8 +123,9 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	user := typeOrEnv(cmd, UsernameFlag, EnvSambaUser)
 	pass := typeOrEnv(cmd, PasswordFlag, EnvSambaPass)
 	domain := typeOrEnv(cmd, DomainFlag, EnvSambaWG)
+	netrc, _ := cmd.Flags().GetString(NetRCFlag)
 
-	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain)
+	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain, netrc)
 	start(drivers.CIFS, d)
 }
 
