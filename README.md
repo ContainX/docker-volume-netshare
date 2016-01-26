@@ -18,7 +18,7 @@ sudo mount -t nfs4 1.1.1.1:/mountpoint /target/mount
 
 ## Installation
 
-**Latest Version:** 0.6
+**Latest Version:** 0.10
 
 #### From Source
 
