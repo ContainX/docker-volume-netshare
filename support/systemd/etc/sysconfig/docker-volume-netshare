@@ -1,0 +1,17 @@
+# Docker Volume Plugin - Netshare Upstart and SysVinit configuration file
+
+# Customize location of the binary (especially for development testing).
+#DKV_NETSHARE="/usr/bin/docker-volume-netshare"
+
+#
+# Customize the volume plugin startup options
+#
+
+## NFS
+DKV_NETSHARE_OPTS="nfs"
+
+## EFS
+#DKV_NETSHARE_OPTS="efs --nameserver=169.254.169.253"
+
+## CIFS
+#DKV_NETSHARE_OPTS="cifs -u user -p pass -d domain"
