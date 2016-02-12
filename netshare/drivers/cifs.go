@@ -74,6 +74,16 @@ func (s cifsDriver) Path(r volume.Request) volume.Response {
 	return volume.Response{Mountpoint: mountpoint(s.root, r.Name)}
 }
 
+func (s cifsDriver) Get(r volume.Request) volume.Response {
+	log.Debugf("Get for %s is at %s", r.Name, mountpoint(s.root, r.Name))
+	return volume.Response{ Volume: &volume.Volume{Name: r.Name, Mountpoint: mountpoint(s.root, r.Name)}}
+}
+
+func (s cifsDriver) List(r volume.Request) volume.Response {
+	log.Debugf("List Volumes")
+	return volume.Response{ Volumes: s.mountm.GetVolumes(s.root) }
+}
+
 func (s cifsDriver) Mount(r volume.Request) volume.Response {
 	s.m.Lock()
 	defer s.m.Unlock()

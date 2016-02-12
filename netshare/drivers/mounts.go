@@ -1,4 +1,5 @@
 package drivers
+import "github.com/docker/go-plugins-helpers/volume"
 
 type mount struct {
 	name        string
@@ -85,4 +86,14 @@ func (m *mountManager) Decrement(dest string) int {
 		c.connections--
 	}
 	return 0
+}
+
+func (m *mountManager) GetVolumes(rootPath string) []*volume.Volume {
+
+	volumes := []*volume.Volume{}
+
+	for name, mount := range m.mounts {
+		volumes = append(volumes, &volume.Volume{Name: name, Mountpoint: mountpoint(rootPath, mount.name)})
+	}
+	return volumes
 }
