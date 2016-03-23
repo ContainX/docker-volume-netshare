@@ -17,6 +17,7 @@ const (
 	DomainFlag     = "domain"
 	SecurityFlag   = "security"
 	VersionFlag    = "version"
+	OptionsFlag    = "options"
 	BasedirFlag    = "basedir"
 	VerboseFlag    = "verbose"
 	AvailZoneFlag  = "az"
@@ -88,6 +89,7 @@ func setupFlags() {
 	cifsCmd.Flags().StringP(NetRCFlag, "", os.Getenv("HOME"), "The default .netrc location.  Default is the user.home directory")
 
 	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]. Can also be set with NETSHARE_NFS_VERSION")
+	nfsCmd.Flags().StringP(OptionsFlag, "o", "", fmt.Sprintf("Options passed to nfs mounts (ex: %s)", drivers.DefaultNfsV3))
 
 	efsCmd.Flags().String(AvailZoneFlag, "", "AWS Availability zone [default: \"\", looks up via metadata]")
 	efsCmd.Flags().String(NameServerFlag, "", "Custom DNS nameserver.  [default \"\", uses /etc/resolv.conf]")
@@ -111,7 +113,8 @@ func execNFS(cmd *cobra.Command, args []string) {
 			}
 		}
 	}
-	d := drivers.NewNFSDriver(rootForType(drivers.NFS), version)
+	options, _ := cmd.Flags().GetString(OptionsFlag)
+	d := drivers.NewNFSDriver(rootForType(drivers.NFS), version, options)
 	start(drivers.NFS, d)
 }
 

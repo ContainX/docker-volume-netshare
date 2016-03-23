@@ -9,19 +9,34 @@ import (
 	"sync"
 )
 
+const (
+	NfsOptions = "nfsopts"
+	DefaultNfsV3 = "port=2049,nolock,proto=tcp"
+)
+
 type nfsDriver struct {
 	root    string
 	version int
 	mountm  *mountManager
 	m       *sync.Mutex
+	opts        map[string]string
 }
 
-func NewNFSDriver(root string, version int) nfsDriver {
+var (
+	EmptyMap = map[string]string{}
+)
+
+
+func NewNFSDriver(root string, version int, options string) nfsDriver {
 	d := nfsDriver{
 		root:    root,
 		version: version,
 		mountm:  NewVolumeManager(),
 		m:       &sync.Mutex{},
+		opts:    map[string]string{},
+	}
+	if len(options) > 0 {
+		d.opts[NfsOptions] = options
 	}
 	return d
 }
@@ -74,7 +89,7 @@ func (n nfsDriver) Mount(r volume.Request) volume.Response {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := mountVolume(source, dest, n.version); err != nil {
+	if err := n.mountVolume(source, dest, n.version); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 	n.mountm.Add(dest, r.Name)
@@ -115,14 +130,42 @@ func (n nfsDriver) fixSource(name string) string {
 	return strings.Join(source, "/")
 }
 
-func mountVolume(source, dest string, version int) error {
+func (n nfsDriver) mountVolume(source, dest string, version int) error {
 	var cmd string
+
+	options := n.mountOptions(n.mountm.GetOptions(dest))
+	opts := ""
+	if val, ok := options[NfsOptions]; ok {
+		opts = val
+	}
 	switch version {
 	case 3:
-		cmd = fmt.Sprintf("mount -o port=2049,nolock,proto=tcp %s %s", source, dest)
+		if len(opts) < 1 {
+			opts = DefaultNfsV3
+		}
+		cmd = fmt.Sprintf("mount -o %s %s %s", opts, source, dest)
 	default:
-		cmd = fmt.Sprintf("mount -t nfs4 %s %s", source, dest)
+		if len(opts) > 0 {
+			cmd = fmt.Sprintf("mount -t nfs4 -o %s %s %s", opts, source, dest)
+		} else {
+			cmd = fmt.Sprintf("mount -t nfs4 %s %s", source, dest)
+		}
 	}
 	log.Debugf("exec: %s\n", cmd)
 	return run(cmd)
+}
+
+func (n nfsDriver) mountOptions(src map[string]string) map[string]string {
+	if (len(n.opts) == 0 && len(src) == 0) {
+		return EmptyMap
+	}
+
+	dst := map[string]string {}
+	for k, v := range n.opts {
+		dst[k] = v
+	}
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
 }

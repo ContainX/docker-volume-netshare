@@ -97,7 +97,7 @@ func (e efsDriver) Mount(r volume.Request) volume.Response {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := mountVolume(source, dest, 4); err != nil {
+	if err := e.mountVolume(source, dest); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 	e.mountm.Add(dest, r.Name)
@@ -156,4 +156,10 @@ func (e efsDriver) fixSource(name string) string {
 
 func mountSuffix(uri string) string {
 	return uri + ":/"
+}
+
+func (e efsDriver) mountVolume(source, dest string) error {
+	cmd := fmt.Sprintf("mount -t nfs4 %s %s", source, dest)
+	log.Debugf("exec: %s\n", cmd)
+	return run(cmd)
 }
