@@ -161,7 +161,7 @@ e.g.: Apple Time Capsule's require the security mode ``ntlm``.
 
 This software is licensed under the Apache 2 license, quoted below.
 
-Copyright 2015 Jeremy Unruh
+Copyright 2016 Jeremy Unruh
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
