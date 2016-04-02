@@ -131,6 +131,8 @@ func (n nfsDriver) fixSource(name string) string {
 }
 
 func (n nfsDriver) mountVolume(source, dest string, version int) error {
+	log.Debugf("Enter mountVolume")
+
 	var cmd string
 
 	options := n.mountOptions(n.mountm.GetOptions(dest))
@@ -140,11 +142,13 @@ func (n nfsDriver) mountVolume(source, dest string, version int) error {
 	}
 	switch version {
 	case 3:
+		log.Debugf("Mounting with NFSv3 - src: %s, dest: %s", source, dest)
 		if len(opts) < 1 {
 			opts = DefaultNfsV3
 		}
 		cmd = fmt.Sprintf("mount -o %s %s %s", opts, source, dest)
 	default:
+		log.Debugf("Mounting with NFSv4 - src: %s, dest: %s", source, dest)
 		if len(opts) > 0 {
 			cmd = fmt.Sprintf("mount -t nfs4 -o %s %s %s", opts, source, dest)
 		} else {

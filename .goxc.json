@@ -1,13 +1,16 @@
 {
  "ArtifactsDest": "build",
  "ConfigVersion": "0.9",
- "PackageVersion": "0.12",
  "TaskSettings": {
   "bintray": {
    "user": "gondor",
    "package": "docker-volume-netshare",
    "repository": "docker",
    "subject": "pacesys"
+  },
+   "publish-github": {
+      "owner": "gondor",
+      "repository": "docker-volume-netshare"
   },
   "debs": {
       "metadata": {
