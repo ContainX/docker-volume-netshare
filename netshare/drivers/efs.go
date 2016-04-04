@@ -71,12 +71,12 @@ func (e efsDriver) Path(r volume.Request) volume.Response {
 
 func (s efsDriver) Get(r volume.Request) volume.Response {
 	log.Debugf("Get for %s is at %s", r.Name, mountpoint(s.root, r.Name))
-	return volume.Response{ Volume: &volume.Volume{Name: r.Name, Mountpoint: mountpoint(s.root, r.Name)}}
+	return volume.Response{Volume: &volume.Volume{Name: r.Name, Mountpoint: mountpoint(s.root, r.Name)}}
 }
 
 func (s efsDriver) List(r volume.Request) volume.Response {
 	log.Debugf("List Volumes")
-	return volume.Response{ Volumes: s.mountm.GetVolumes(s.root) }
+	return volume.Response{Volumes: s.mountm.GetVolumes(s.root)}
 }
 
 func (e efsDriver) Mount(r volume.Request) volume.Response {

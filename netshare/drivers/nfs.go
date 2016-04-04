@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	NfsOptions = "nfsopts"
+	NfsOptions   = "nfsopts"
 	DefaultNfsV3 = "port=2049,nolock,proto=tcp"
 )
 
@@ -19,13 +19,12 @@ type nfsDriver struct {
 	version int
 	mountm  *mountManager
 	m       *sync.Mutex
-	opts        map[string]string
+	opts    map[string]string
 }
 
 var (
 	EmptyMap = map[string]string{}
 )
-
 
 func NewNFSDriver(root string, version int, options string) nfsDriver {
 	d := nfsDriver{
@@ -63,12 +62,12 @@ func (n nfsDriver) Path(r volume.Request) volume.Response {
 
 func (s nfsDriver) Get(r volume.Request) volume.Response {
 	log.Debugf("Get for %s is at %s", r.Name, mountpoint(s.root, r.Name))
-	return volume.Response{ Volume: &volume.Volume{Name: r.Name, Mountpoint: mountpoint(s.root, r.Name)}}
+	return volume.Response{Volume: &volume.Volume{Name: r.Name, Mountpoint: mountpoint(s.root, r.Name)}}
 }
 
 func (s nfsDriver) List(r volume.Request) volume.Response {
 	log.Debugf("List Volumes")
-	return volume.Response{ Volumes: s.mountm.GetVolumes(s.root) }
+	return volume.Response{Volumes: s.mountm.GetVolumes(s.root)}
 }
 
 func (n nfsDriver) Mount(r volume.Request) volume.Response {
@@ -140,19 +139,26 @@ func (n nfsDriver) mountVolume(source, dest string, version int) error {
 	if val, ok := options[NfsOptions]; ok {
 		opts = val
 	}
+
+	mountCmd := "mount"
+
+	if log.GetLevel() == log.DebugLevel {
+		mountCmd = mountCmd + " -v"
+	}
+
 	switch version {
 	case 3:
 		log.Debugf("Mounting with NFSv3 - src: %s, dest: %s", source, dest)
 		if len(opts) < 1 {
 			opts = DefaultNfsV3
 		}
-		cmd = fmt.Sprintf("mount -o %s %s %s", opts, source, dest)
+		cmd = fmt.Sprintf("%s -o %s %s %s", mountCmd, opts, source, dest)
 	default:
 		log.Debugf("Mounting with NFSv4 - src: %s, dest: %s", source, dest)
 		if len(opts) > 0 {
-			cmd = fmt.Sprintf("mount -t nfs4 -o %s %s %s", opts, source, dest)
+			cmd = fmt.Sprintf("%s -t nfs4 -o %s %s %s", mountCmd, opts, source, dest)
 		} else {
-			cmd = fmt.Sprintf("mount -t nfs4 %s %s", source, dest)
+			cmd = fmt.Sprintf("%s -t nfs4 %s %s", mountCmd, source, dest)
 		}
 	}
 	log.Debugf("exec: %s\n", cmd)
@@ -160,11 +166,11 @@ func (n nfsDriver) mountVolume(source, dest string, version int) error {
 }
 
 func (n nfsDriver) mountOptions(src map[string]string) map[string]string {
-	if (len(n.opts) == 0 && len(src) == 0) {
+	if len(n.opts) == 0 && len(src) == 0 {
 		return EmptyMap
 	}
 
-	dst := map[string]string {}
+	dst := map[string]string{}
 	for k, v := range n.opts {
 		dst[k] = v
 	}
