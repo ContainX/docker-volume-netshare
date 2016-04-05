@@ -39,6 +39,8 @@ const (
 
 Provides docker volume support for NFS v3 and 4, EFS as well as CIFS.  This plugin can be run multiple times to
 support different mount types.
+
+== Version: %s - Built: %s ==
 	`
 )
 
@@ -67,12 +69,23 @@ var (
 		Short: "run plugin in AWS EFS mode",
 		Run:   execEFS,
 	}
+
+	versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Display current version and build date",
+		Run:  func(cmd *cobra.Command, args []string) {
+			fmt.Printf("\nVersion: %s - Built: %s\n\n", Version, BuildDate)
+		},
+	}
 	baseDir = ""
+	Version   string = ""
+	BuildDate string = ""
 )
 
 func Execute() {
 	setupFlags()
-	rootCmd.AddCommand(cifsCmd, nfsCmd, efsCmd)
+	rootCmd.Long = fmt.Sprintf(NetshareHelp, Version, BuildDate)
+	rootCmd.AddCommand(versionCmd, cifsCmd, nfsCmd, efsCmd)
 	rootCmd.Execute()
 }
 
