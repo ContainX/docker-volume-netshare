@@ -36,8 +36,8 @@ The method below will install the sysvinit and /etc/default options that can be 
 1. Install the Package
 
 ```
-  $ wget https://github.com/gondor/docker-volume-netshare/releases/download/v0.13/docker-volume-netshare_0.13_amd64.deb
-  $ sudo dpkg -i docker-volume-netshare_0.13_amd64.deb
+  $ wget https://github.com/gondor/docker-volume-netshare/releases/download/v0.14/docker-volume-netshare_0.14_amd64.deb
+  $ sudo dpkg -i docker-volume-netshare_0.14_amd64.deb
 ```
 
 2. Modify the startup options in `/etc/default/docker-volume-netshare`

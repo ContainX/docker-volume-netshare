@@ -41,7 +41,9 @@ func NewNFSDriver(root string, version int, options string) nfsDriver {
 }
 
 func (n nfsDriver) Create(r volume.Request) volume.Response {
-	log.Debugf("Create: %s, %v", r.Name, r.Options)
+	log.Debugf("Entering Create: name: %s, options %v", r.Name, r.Options)
+
+	log.Debugf("Create volume -> name: %s, %v", r.Name, r.Options)
 	dest := mountpoint(n.root, r.Name)
 	if err := createDest(dest); err != nil {
 		return volume.Response{Err: err.Error()}
@@ -51,26 +53,31 @@ func (n nfsDriver) Create(r volume.Request) volume.Response {
 }
 
 func (n nfsDriver) Remove(r volume.Request) volume.Response {
-	log.Debugf("Removing volume %s", r.Name)
+	log.Debugf("Entering REmove: name: %s, options %v", r.Name, r.Options)
 	return volume.Response{}
 }
 
 func (n nfsDriver) Path(r volume.Request) volume.Response {
+	log.Debugf("Entering Path: %v", r)
+
 	log.Debugf("Path for %s is at %s", r.Name, mountpoint(n.root, r.Name))
 	return volume.Response{Mountpoint: mountpoint(n.root, r.Name)}
 }
 
 func (s nfsDriver) Get(r volume.Request) volume.Response {
+	log.Debugf("Entering Get: %v", r)
+
 	log.Debugf("Get for %s is at %s", r.Name, mountpoint(s.root, r.Name))
 	return volume.Response{Volume: &volume.Volume{Name: r.Name, Mountpoint: mountpoint(s.root, r.Name)}}
 }
 
 func (s nfsDriver) List(r volume.Request) volume.Response {
-	log.Debugf("List Volumes")
+	log.Debugf("Entering List: %v", r)
 	return volume.Response{Volumes: s.mountm.GetVolumes(s.root)}
 }
 
 func (n nfsDriver) Mount(r volume.Request) volume.Response {
+	log.Debugf("Entering Mount: %v", r)
 	n.m.Lock()
 	defer n.m.Unlock()
 	dest := mountpoint(n.root, r.Name)
@@ -96,6 +103,8 @@ func (n nfsDriver) Mount(r volume.Request) volume.Response {
 }
 
 func (n nfsDriver) Unmount(r volume.Request) volume.Response {
+	log.Debugf("Entering Unmount: %v", r)
+
 	n.m.Lock()
 	defer n.m.Unlock()
 	dest := mountpoint(n.root, r.Name)
@@ -130,8 +139,6 @@ func (n nfsDriver) fixSource(name string) string {
 }
 
 func (n nfsDriver) mountVolume(source, dest string, version int) error {
-	log.Debugf("Enter mountVolume")
-
 	var cmd string
 
 	options := n.mountOptions(n.mountm.GetOptions(dest))
