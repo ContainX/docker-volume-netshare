@@ -6,7 +6,6 @@ import (
 	"github.com/docker/go-plugins-helpers/volume"
 	"os"
 	"strings"
-	"sync"
 )
 
 const (
@@ -14,24 +13,20 @@ const (
 )
 
 type efsDriver struct {
-	root      string
+	volumeDriver
 	availzone string
 	resolve   bool
 	region    string
 	resolver  *Resolver
-	mountm    *mountManager
-	m         *sync.Mutex
 	dnscache  map[string]string
 }
 
 func NewEFSDriver(root, az, nameserver string, resolve bool) efsDriver {
 
 	d := efsDriver{
-		root:     root,
-		resolve:  resolve,
-		mountm:   NewVolumeManager(),
-		m:        &sync.Mutex{},
-		dnscache: map[string]string{},
+		volumeDriver: newVolumeDriver(root),
+		resolve:      resolve,
+		dnscache:     map[string]string{},
 	}
 
 	if resolve {
@@ -49,90 +44,67 @@ func NewEFSDriver(root, az, nameserver string, resolve bool) efsDriver {
 	return d
 }
 
-func (e efsDriver) Create(r volume.Request) volume.Response {
-	log.Debugf("Create: %s, %v", r.Name, r.Options)
-	dest := mountpoint(e.root, r.Name)
-	if err := createDest(dest); err != nil {
-		return volume.Response{Err: err.Error()}
-	}
-	e.mountm.Create(dest, r.Name, r.Options)
-	return volume.Response{}
-}
-
-func (e efsDriver) Remove(r volume.Request) volume.Response {
-	log.Debugf("Removing volume %s", r.Name)
-	return volume.Response{}
-}
-
-func (e efsDriver) Path(r volume.Request) volume.Response {
-	log.Debugf("Path for %s is at %s", r.Name, mountpoint(e.root, r.Name))
-	return volume.Response{Mountpoint: mountpoint(e.root, r.Name)}
-}
-
-func (s efsDriver) Get(r volume.Request) volume.Response {
-	log.Debugf("Get for %s is at %s", r.Name, mountpoint(s.root, r.Name))
-	return volume.Response{Volume: &volume.Volume{Name: r.Name, Mountpoint: mountpoint(s.root, r.Name)}}
-}
-
-func (s efsDriver) List(r volume.Request) volume.Response {
-	log.Debugf("List Volumes")
-	return volume.Response{Volumes: s.mountm.GetVolumes(s.root)}
-}
-
 func (e efsDriver) Mount(r volume.Request) volume.Response {
 	e.m.Lock()
 	defer e.m.Unlock()
-	dest := mountpoint(e.root, r.Name)
-	source := e.fixSource(r.Name)
+	hostdir := mountpoint(e.root, r.Name)
+	source := e.fixSource(r)
 
-	if e.mountm.HasMount(dest) && e.mountm.Count(dest) > 0 {
-		log.Infof("Using existing EFS volume mount: %s", dest)
-		e.mountm.Increment(dest)
-		return volume.Response{Mountpoint: dest}
+	if e.mountm.HasMount(r.Name) && e.mountm.Count(r.Name) > 0 {
+		log.Infof("Using existing EFS volume mount: %s", hostdir)
+		e.mountm.Increment(r.Name)
+		return volume.Response{Mountpoint: hostdir}
 	}
 
-	log.Infof("Mounting EFS volume %s on %s", source, dest)
+	log.Infof("Mounting EFS volume %s on %s", source, hostdir)
 
-	if err := createDest(dest); err != nil {
+	if err := createDest(hostdir); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := e.mountVolume(source, dest); err != nil {
+	if err := e.mountVolume(source, hostdir); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
-	e.mountm.Add(dest, r.Name)
-	return volume.Response{Mountpoint: dest}
+	e.mountm.Add(r.Name, hostdir)
+	return volume.Response{Mountpoint: hostdir}
 }
 
 func (e efsDriver) Unmount(r volume.Request) volume.Response {
 	e.m.Lock()
 	defer e.m.Unlock()
-	dest := mountpoint(e.root, r.Name)
-	source := e.fixSource(r.Name)
+	hostdir := mountpoint(e.root, r.Name)
+	source := e.fixSource(r)
 
-	if e.mountm.HasMount(dest) {
-		if e.mountm.Count(dest) > 1 {
-			log.Infof("Skipping unmount for %s - in use by other containers", dest)
-			e.mountm.Decrement(dest)
+	if e.mountm.HasMount(r.Name) {
+		if e.mountm.Count(r.Name) > 1 {
+			log.Infof("Skipping unmount for %s - in use by other containers", hostdir)
+			e.mountm.Decrement(r.Name)
 			return volume.Response{}
 		}
-		e.mountm.Decrement(dest)
+		e.mountm.Decrement(r.Name)
 	}
 
-	log.Infof("Unmounting volume %s from %s", source, dest)
+	log.Infof("Unmounting volume %s from %s", source, hostdir)
 
-	if err := run(fmt.Sprintf("umount %s", dest)); err != nil {
+	if err := run(fmt.Sprintf("umount %s", hostdir)); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := os.RemoveAll(dest); err != nil {
+	e.mountm.DeleteIfNotManaged(r.Name)
+
+	if err := os.RemoveAll(r.Name); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 
 	return volume.Response{}
 }
 
-func (e efsDriver) fixSource(name string) string {
+func (e efsDriver) fixSource(r volume.Request) string {
+	name := r.Name
+	if e.mountm.HasOption(r.Name, ShareOpt) {
+		name = e.mountm.GetOption(r.Name, ShareOpt)
+	}
+
 	v := strings.Split(name, "/")
 	if e.resolve {
 		uri := fmt.Sprintf(EfsTemplateURI, e.availzone, v[0], e.region)
