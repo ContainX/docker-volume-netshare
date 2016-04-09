@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
 const (
@@ -20,11 +19,9 @@ const (
 )
 
 type cifsDriver struct {
-	root   string
-	creds  *cifsCreds
-	netrc  *netrc.Netrc
-	mountm *mountManager
-	m      *sync.Mutex
+	volumeDriver
+	creds *cifsCreds
+	netrc *netrc.Netrc
 }
 
 type cifsCreds struct {
@@ -36,11 +33,9 @@ type cifsCreds struct {
 
 func NewCIFSDriver(root, user, pass, domain, security, netrc string) cifsDriver {
 	d := cifsDriver{
-		root:   root,
-		creds:  &cifsCreds{user: user, pass: pass, domain: domain, security: security},
-		netrc:  parseNetRC(netrc),
-		mountm: NewVolumeManager(),
-		m:      &sync.Mutex{},
+		volumeDriver: newVolumeDriver(root),
+		creds:        &cifsCreds{user: user, pass: pass, domain: domain, security: security},
+		netrc:        parseNetRC(netrc),
 	}
 	return d
 }
@@ -54,96 +49,77 @@ func parseNetRC(path string) *netrc.Netrc {
 	return nil
 }
 
-func (s cifsDriver) Create(r volume.Request) volume.Response {
-	log.Debugf("Create: %s, %v", r.Name, r.Options)
-	dest := mountpoint(s.root, r.Name)
-	if err := createDest(dest); err != nil {
-		return volume.Response{Err: err.Error()}
-	}
-	s.mountm.Create(dest, r.Name, r.Options)
-	return volume.Response{}
-}
+func (c cifsDriver) Mount(r volume.Request) volume.Response {
+	c.m.Lock()
+	defer c.m.Unlock()
+	hostdir := mountpoint(c.root, r.Name)
+	source := c.fixSource(r)
+	host := c.parseHost(r)
 
-func (s cifsDriver) Remove(r volume.Request) volume.Response {
-	log.Debugf("Removing volume %s", r.Name)
-	return volume.Response{}
-}
-
-func (s cifsDriver) Path(r volume.Request) volume.Response {
-	log.Debugf("Path for %s is at %s", r.Name, mountpoint(s.root, r.Name))
-	return volume.Response{Mountpoint: mountpoint(s.root, r.Name)}
-}
-
-func (s cifsDriver) Get(r volume.Request) volume.Response {
-	log.Debugf("Get for %s is at %s", r.Name, mountpoint(s.root, r.Name))
-	return volume.Response{Volume: &volume.Volume{Name: r.Name, Mountpoint: mountpoint(s.root, r.Name)}}
-}
-
-func (s cifsDriver) List(r volume.Request) volume.Response {
-	log.Debugf("List Volumes")
-	return volume.Response{Volumes: s.mountm.GetVolumes(s.root)}
-}
-
-func (s cifsDriver) Mount(r volume.Request) volume.Response {
-	s.m.Lock()
-	defer s.m.Unlock()
-	dest := mountpoint(s.root, r.Name)
-	source := s.fixSource(r.Name)
-	host := parseHost(r.Name)
 	log.Infof("Mount: %s, %v", r.Name, r.Options)
 
-	if s.mountm.HasMount(dest) && s.mountm.Count(dest) > 0 {
-		log.Infof("Using existing CIFS volume mount: %s", dest)
-		s.mountm.Increment(dest)
-		return volume.Response{Mountpoint: dest}
+	if c.mountm.HasMount(r.Name) && c.mountm.Count(r.Name) > 0 {
+		log.Infof("Using existing CIFS volume mount: %s", hostdir)
+		c.mountm.Increment(r.Name)
+		return volume.Response{Mountpoint: hostdir}
 	}
 
-	log.Infof("Mounting CIFS volume %s on %s", source, dest)
+	log.Infof("Mounting CIFS volume %s on %s", source, hostdir)
 
-	if err := createDest(dest); err != nil {
+	if err := createDest(hostdir); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := s.mountVolume(source, dest, s.getCreds(host)); err != nil {
+	if err := c.mountVolume(source, hostdir, c.getCreds(host)); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
-	s.mountm.Add(dest, r.Name)
-	return volume.Response{Mountpoint: dest}
+	c.mountm.Add(r.Name, hostdir)
+	return volume.Response{Mountpoint: hostdir}
 }
 
-func (s cifsDriver) Unmount(r volume.Request) volume.Response {
-	s.m.Lock()
-	defer s.m.Unlock()
-	dest := mountpoint(s.root, r.Name)
-	source := s.fixSource(r.Name)
+func (c cifsDriver) Unmount(r volume.Request) volume.Response {
+	c.m.Lock()
+	defer c.m.Unlock()
+	hostdir := mountpoint(c.root, r.Name)
+	source := c.fixSource(r)
 
-	if s.mountm.HasMount(dest) {
-		if s.mountm.Count(dest) > 1 {
-			log.Infof("Skipping unmount for %s - in use by other containers", dest)
-			s.mountm.Decrement(dest)
+	if c.mountm.HasMount(r.Name) {
+		if c.mountm.Count(r.Name) > 1 {
+			log.Infof("Skipping unmount for %s - in use by other containers", r.Name)
+			c.mountm.Decrement(r.Name)
 			return volume.Response{}
 		}
-		s.mountm.Decrement(dest)
+		c.mountm.Decrement(r.Name)
 	}
 
-	log.Infof("Unmounting volume %s from %s", source, dest)
+	log.Infof("Unmounting volume %s from %s", source, hostdir)
 
-	if err := run(fmt.Sprintf("umount %s", dest)); err != nil {
+	if err := run(fmt.Sprintf("umount %s", hostdir)); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := os.RemoveAll(dest); err != nil {
+	c.mountm.DeleteIfNotManaged(r.Name)
+
+	if err := os.RemoveAll(hostdir); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 
 	return volume.Response{}
 }
 
-func (s cifsDriver) fixSource(name string) string {
-	return "//" + name
+func (c cifsDriver) fixSource(r volume.Request) string {
+	if c.mountm.HasOption(r.Name, ShareOpt) {
+		return "//" + c.mountm.GetOption(r.Name, ShareOpt)
+	}
+	return "//" + r.Name
 }
 
-func parseHost(name string) string {
+func (c cifsDriver) parseHost(r volume.Request) string {
+	name := r.Name
+	if c.mountm.HasOption(r.Name, ShareOpt) {
+		name = c.mountm.GetOption(r.Name, ShareOpt)
+	}
+
 	if strings.ContainsAny(name, "/") {
 		s := strings.Split(name, "/")
 		return s[0]

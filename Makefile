@@ -1,4 +1,4 @@
-VERSION = 0.15
+VERSION = 0.16
 GO_FMT = gofmt -s -w -l .
 GO_XC = goxc -os="linux" -tasks-="rmbin" 
 

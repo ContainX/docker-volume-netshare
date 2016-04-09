@@ -73,11 +73,11 @@ var (
 	versionCmd = &cobra.Command{
 		Use:   "version",
 		Short: "Display current version and build date",
-		Run:  func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Printf("\nVersion: %s - Built: %s\n\n", Version, BuildDate)
 		},
 	}
-	baseDir = ""
+	baseDir          = ""
 	Version   string = ""
 	BuildDate string = ""
 )
@@ -128,6 +128,7 @@ func execNFS(cmd *cobra.Command, args []string) {
 	}
 	options, _ := cmd.Flags().GetString(OptionsFlag)
 	d := drivers.NewNFSDriver(rootForType(drivers.NFS), version, options)
+	startOutput(fmt.Sprintf("NFS Version %d :: options: '%s'", version, options))
 	start(drivers.NFS, d)
 }
 
@@ -136,6 +137,7 @@ func execEFS(cmd *cobra.Command, args []string) {
 	resolve, _ := cmd.Flags().GetBool(NoResolveFlag)
 	ns, _ := cmd.Flags().GetString(NameServerFlag)
 	d := drivers.NewEFSDriver(rootForType(drivers.EFS), az, ns, !resolve)
+	startOutput(fmt.Sprintf("EFS :: availability-zone: %s, resolve: %v, ns: %s", az, resolve, ns))
 	start(drivers.EFS, d)
 }
 
@@ -145,9 +147,14 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	domain := typeOrEnv(cmd, DomainFlag, EnvSambaWG)
 	security := typeOrEnv(cmd, SecurityFlag, EnvSambaSec)
 	netrc, _ := cmd.Flags().GetString(NetRCFlag)
-
 	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain, security, netrc)
+	startOutput(fmt.Sprintf("CIFS :: user: %s, pass: ***, domain: %s, secutity: %s, netrc: %s", user, domain, security, netrc))
 	start(drivers.CIFS, d)
+}
+
+func startOutput(info string) {
+	log.Infof("== docker-volume-netshare :: Version: %s - Built: %s ==", Version, BuildDate)
+	log.Infof("Starting %s", info)
 }
 
 func typeOrEnv(cmd *cobra.Command, flag, envname string) string {
