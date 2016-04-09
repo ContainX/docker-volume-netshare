@@ -70,7 +70,7 @@ func (c cifsDriver) Mount(r volume.Request) volume.Response {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := c.mountVolume(source, hostdir, c.getCreds(host)); err != nil {
+	if err := c.mountVolume(r.Name, source, hostdir, c.getCreds(host)); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 	c.mountm.Add(r.Name, hostdir)
@@ -127,7 +127,7 @@ func (c cifsDriver) parseHost(r volume.Request) string {
 	return name
 }
 
-func (s cifsDriver) mountVolume(source, dest string, creds *cifsCreds) error {
+func (s cifsDriver) mountVolume(name, source, dest string, creds *cifsCreds) error {
 	var opts bytes.Buffer
 
 	opts.WriteString("-o ")
@@ -136,8 +136,8 @@ func (s cifsDriver) mountVolume(source, dest string, creds *cifsCreds) error {
 	var domain = creds.domain
 	var security = creds.security
 
-	if s.mountm.HasOptions(dest) {
-		mopts := s.mountm.GetOptions(dest)
+	if s.mountm.HasOptions(name) {
+		mopts := s.mountm.GetOptions(name)
 		if v, found := mopts[UsernameOpt]; found {
 			user = v
 		}
@@ -173,7 +173,7 @@ func (s cifsDriver) mountVolume(source, dest string, creds *cifsCreds) error {
 
 	opts.WriteString(fmt.Sprintf("%s %s", source, dest))
 	cmd := fmt.Sprintf("mount -t cifs %s", opts.String())
-	log.Debugf("Executing: %s\n", strings.Replace(cmd, pass, "", 1))
+	log.Debugf("Executing: %s\n", strings.Replace(cmd, "password="+pass, "password=****", 1))
 	return run(cmd)
 }
 

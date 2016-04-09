@@ -28,9 +28,6 @@ func (v volumeDriver) Create(r volume.Request) volume.Response {
 
 	log.Debugf("Create volume -> name: %s, %v", r.Name, r.Options)
 
-	// TODO - check for share option
-	// TODO - refactor to use name instead of key
-
 	dest := mountpoint(v.root, r.Name)
 	if err := createDest(dest); err != nil {
 		return volume.Response{Err: err.Error()}
