@@ -1,6 +1,6 @@
 # Docker NFS, AWS EFS & Samba/CIFS Volume Plugin
 
-[![Build Status](https://travis-ci.org/gondor/docker-volume-netshare.svg)](https://travis-ci.org/gondor/docker-volume-netshare)
+[![Build Status](https://travis-ci.org/gondor/docker-volume-netshare.svg)](https://travis-ci.org/gondor/docker-volume-netshare) [![release](http://github-release-version.herokuapp.com/github/gondor/docker-volume-netshare/release.svg?style=flat)](https://github.com/gondor/docker-volume-netshare/releases/latest)
 
 Mount NFS v3/4, AWS EFS or CIFS inside your docker containers.  This is a docker plugin which enables these volume types to be directly mounted within a container.
 
@@ -18,8 +18,6 @@ sudo mount -t nfs4 1.1.1.1:/mountpoint /target/mount
 
 ## Installation
 
-**Latest Version:** 0.10
-
 #### From Source
 
 ```
@@ -29,9 +27,7 @@ $ go build
 
 #### From Binaries
 
-* Architecture i386 [ [linux](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_linux_386.tar.gz?direct) / [netbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_netbsd_386.zip?direct) / [freebsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_freebsd_386.zip?direct) / [openbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_openbsd_386.zip?direct) ]
-* Architecture amd64 [ [linux](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_linux_amd64.tar.gz?direct) / [netbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_netbsd_amd64.zip?direct) / [freebsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_freebsd_amd64.zip?direct) / [openbsd](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_openbsd_amd64.zip?direct) ]
-* Debian Package [ [i386](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_i386.deb?direct) ] / [amd64](https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_amd64.deb?direct) ] ]
+Binaries are available through GitHub releases.  You can download the appropriate binary, package and version from the [Releases](https://github.com/gondor/docker-volume-netshare/releases) page
 
 #### On Ubuntu / Debian
 
@@ -40,8 +36,8 @@ The method below will install the sysvinit and /etc/default options that can be 
 1. Install the Package
 
 ```
-  $ wget https://dl.bintray.com//content/pacesys/docker/docker-volume-netshare_0.11_i386.deb
-  $ sudo dpkg -i docker-volume-netshare_0.11_i386.deb
+  $ wget https://github.com/gondor/docker-volume-netshare/releases/download/v0.16/docker-volume-netshare_0.16_amd64.deb
+  $ sudo dpkg -i docker-volume-netshare_0.16_amd64.deb
 ```
 
 2. Modify the startup options in `/etc/default/docker-volume-netshare`
@@ -165,7 +161,7 @@ e.g.: Apple Time Capsule's require the security mode ``ntlm``.
 
 This software is licensed under the Apache 2 license, quoted below.
 
-Copyright 2015 Jeremy Unruh
+Copyright 2016 Jeremy Unruh
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 

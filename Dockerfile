@@ -5,4 +5,4 @@ FROM golang:1.5
 
 COPY . /go/src/app
 WORKDIR /go/src/app
-RUN go-wrapper download && go-wrapper install && go build -o docker-volume-netshare
+RUN go-wrapper download && go-wrapper install && go build -o docker-volume-netshare && cp docker-volume-netshare /bin

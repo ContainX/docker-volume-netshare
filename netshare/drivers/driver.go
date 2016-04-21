@@ -1,56 +1,71 @@
 package drivers
 
 import (
-	"fmt"
-	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
+	log "github.com/Sirupsen/logrus"
+	"github.com/docker/go-plugins-helpers/volume"
+	"sync"
 )
 
-type DriverType int
-
-const (
-	CIFS DriverType = iota
-	NFS
-	EFS
-)
-
-var driverTypes = []string{
-	"cifs",
-	"nfs",
-	"efs",
+type volumeDriver struct {
+	root   string
+	mountm *mountManager
+	m      *sync.Mutex
 }
 
-func (dt DriverType) String() string {
-	return driverTypes[dt]
-}
-
-func createDest(dest string) error {
-	fi, err := os.Lstat(dest)
-
-	if os.IsNotExist(err) {
-		if err := os.MkdirAll(dest, 0755); err != nil {
-			return err
-		}
-	} else if err != nil {
-		return err
+func newVolumeDriver(root string) volumeDriver {
+	return volumeDriver{
+		root:   root,
+		mountm: NewVolumeManager(),
+		m:      &sync.Mutex{},
 	}
-
-	if fi != nil && !fi.IsDir() {
-		return fmt.Errorf("%v already exist and it's not a directory", dest)
-	}
-	return nil
 }
 
-func mountpoint(root, name string) string {
-	return filepath.Join(root, name)
+func (v volumeDriver) Create(r volume.Request) volume.Response {
+	log.Debugf("Entering Create: name: %s, options %v", r.Name, r.Options)
+
+	v.m.Lock()
+	defer v.m.Unlock()
+
+	log.Debugf("Create volume -> name: %s, %v", r.Name, r.Options)
+
+	dest := mountpoint(v.root, r.Name)
+	if err := createDest(dest); err != nil {
+		return volume.Response{Err: err.Error()}
+	}
+	v.mountm.Create(r.Name, dest, r.Options)
+	return volume.Response{}
 }
 
-func run(cmd string) error {
-	if out, err := exec.Command("sh", "-c", cmd).CombinedOutput(); err != nil {
-		log.Println(string(out))
-		return err
+func (v volumeDriver) Remove(r volume.Request) volume.Response {
+	log.Debugf("Entering Remove: name: %s, options %v", r.Name, r.Options)
+	v.m.Lock()
+	defer v.m.Unlock()
+
+	if err := v.mountm.Delete(r.Name); err != nil {
+		return volume.Response{Err: err.Error()}
 	}
-	return nil
+	return volume.Response{}
+}
+
+func (v volumeDriver) Path(r volume.Request) volume.Response {
+	log.Debugf("Host path for %s is at %s", r.Name, mountpoint(v.root, r.Name))
+	return volume.Response{Mountpoint: mountpoint(v.root, r.Name)}
+}
+
+func (v volumeDriver) Get(r volume.Request) volume.Response {
+	log.Debugf("Entering Get: %v", r)
+	v.m.Lock()
+	defer v.m.Unlock()
+	hostdir := mountpoint(v.root, r.Name)
+
+	if v.mountm.HasMount(r.Name) {
+		log.Debugf("Get: mount found for %s, host directory: %s", r.Name, hostdir)
+		return volume.Response{Volume: &volume.Volume{Name: r.Name, Mountpoint: hostdir}}
+	}
+	return volume.Response{}
+}
+
+func (v volumeDriver) List(r volume.Request) volume.Response {
+	log.Debugf("Entering List: %v", r)
+	return volume.Response{Volumes: v.mountm.GetVolumes(v.root)}
 }

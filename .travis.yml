@@ -1,6 +1,5 @@
 language: go
 go:
-  - 1.4.2
   - 1.5.1
   - tip
 script:
@@ -9,3 +8,5 @@ script:
 install:
   - go get github.com/stretchr/testify
   - go get -v ./...
+env:
+  - GO15VENDOREXPERIMENT=1

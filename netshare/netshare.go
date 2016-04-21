@@ -17,6 +17,7 @@ const (
 	DomainFlag     = "domain"
 	SecurityFlag   = "security"
 	VersionFlag    = "version"
+	OptionsFlag    = "options"
 	BasedirFlag    = "basedir"
 	VerboseFlag    = "verbose"
 	AvailZoneFlag  = "az"
@@ -38,6 +39,8 @@ const (
 
 Provides docker volume support for NFS v3 and 4, EFS as well as CIFS.  This plugin can be run multiple times to
 support different mount types.
+
+== Version: %s - Built: %s ==
 	`
 )
 
@@ -66,12 +69,23 @@ var (
 		Short: "run plugin in AWS EFS mode",
 		Run:   execEFS,
 	}
-	baseDir = ""
+
+	versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Display current version and build date",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("\nVersion: %s - Built: %s\n\n", Version, BuildDate)
+		},
+	}
+	baseDir          = ""
+	Version   string = ""
+	BuildDate string = ""
 )
 
 func Execute() {
 	setupFlags()
-	rootCmd.AddCommand(cifsCmd, nfsCmd, efsCmd)
+	rootCmd.Long = fmt.Sprintf(NetshareHelp, Version, BuildDate)
+	rootCmd.AddCommand(versionCmd, cifsCmd, nfsCmd, efsCmd)
 	rootCmd.Execute()
 }
 
@@ -88,6 +102,7 @@ func setupFlags() {
 	cifsCmd.Flags().StringP(NetRCFlag, "", os.Getenv("HOME"), "The default .netrc location.  Default is the user.home directory")
 
 	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]. Can also be set with NETSHARE_NFS_VERSION")
+	nfsCmd.Flags().StringP(OptionsFlag, "o", "", fmt.Sprintf("Options passed to nfs mounts (ex: %s)", drivers.DefaultNfsV3))
 
 	efsCmd.Flags().String(AvailZoneFlag, "", "AWS Availability zone [default: \"\", looks up via metadata]")
 	efsCmd.Flags().String(NameServerFlag, "", "Custom DNS nameserver.  [default \"\", uses /etc/resolv.conf]")
@@ -111,7 +126,9 @@ func execNFS(cmd *cobra.Command, args []string) {
 			}
 		}
 	}
-	d := drivers.NewNFSDriver(rootForType(drivers.NFS), version)
+	options, _ := cmd.Flags().GetString(OptionsFlag)
+	d := drivers.NewNFSDriver(rootForType(drivers.NFS), version, options)
+	startOutput(fmt.Sprintf("NFS Version %d :: options: '%s'", version, options))
 	start(drivers.NFS, d)
 }
 
@@ -120,6 +137,7 @@ func execEFS(cmd *cobra.Command, args []string) {
 	resolve, _ := cmd.Flags().GetBool(NoResolveFlag)
 	ns, _ := cmd.Flags().GetString(NameServerFlag)
 	d := drivers.NewEFSDriver(rootForType(drivers.EFS), az, ns, !resolve)
+	startOutput(fmt.Sprintf("EFS :: availability-zone: %s, resolve: %v, ns: %s", az, resolve, ns))
 	start(drivers.EFS, d)
 }
 
@@ -129,9 +147,14 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	domain := typeOrEnv(cmd, DomainFlag, EnvSambaWG)
 	security := typeOrEnv(cmd, SecurityFlag, EnvSambaSec)
 	netrc, _ := cmd.Flags().GetString(NetRCFlag)
-
 	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain, security, netrc)
+	startOutput(fmt.Sprintf("CIFS :: user: %s, pass: ***, domain: %s, secutity: %s, netrc: %s", user, domain, security, netrc))
 	start(drivers.CIFS, d)
+}
+
+func startOutput(info string) {
+	log.Infof("== docker-volume-netshare :: Version: %s - Built: %s ==", Version, BuildDate)
+	log.Infof("Starting %s", info)
 }
 
 func typeOrEnv(cmd *cobra.Command, flag, envname string) string {
