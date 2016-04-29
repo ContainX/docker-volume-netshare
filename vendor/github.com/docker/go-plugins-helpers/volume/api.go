@@ -8,7 +8,7 @@ import (
 
 const (
 	// DefaultDockerRootDirectory is the default directory where volumes will be created.
-	DefaultDockerRootDirectory = "/var/lib/docker-volumes"
+	DefaultDockerRootDirectory = "/var/lib/docker/volumes"
 
 	manifest        = `{"Implements": ["VolumeDriver"]}`
 	createPath      = "/VolumeDriver.Create"
