@@ -4,7 +4,7 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
-	"github.com/gondor/docker-volume-netshare/netshare/drivers"
+	"github.com/ContainX/docker-volume-netshare/netshare/drivers"
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
