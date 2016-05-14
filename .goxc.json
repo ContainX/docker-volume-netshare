@@ -15,10 +15,10 @@
   "debs": {
       "metadata": {
         "description": "Docker Volume Plugin - Netshare",
-        "maintainer": "Jeremy Unruh (https://github.com/gondor)"
+        "maintainer": "Jeremy Unruh (https://github.com/ContainX)"
       },
       "metadata-deb": {
-        "Homepage": "https://github.com/gondor/docker-volume-netshare"
+        "Homepage": "https://github.com/ContainX/docker-volume-netshare"
       },
       "other-mapped-files": {
         "/": "support/sysvinit-debian/"

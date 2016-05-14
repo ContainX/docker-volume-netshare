@@ -1,8 +1,10 @@
 # Docker NFS, AWS EFS & Samba/CIFS Volume Plugin
 
-[![Build Status](https://travis-ci.org/gondor/docker-volume-netshare.svg)](https://travis-ci.org/gondor/docker-volume-netshare) [![release](http://github-release-version.herokuapp.com/github/gondor/docker-volume-netshare/release.svg?style=flat)](https://github.com/gondor/docker-volume-netshare/releases/latest)
+[![Build Status](https://travis-ci.org/ContainX/docker-volume-netshare.svg)](https://travis-ci.org/ContainX/docker-volume-netshare) [![release](http://github-release-version.herokuapp.com/github/ContainX/docker-volume-netshare/release.svg?style=flat)](https://github.com/ContainX/docker-volume-netshare/releases/latest)
 
 Mount NFS v3/4, AWS EFS or CIFS inside your docker containers.  This is a docker plugin which enables these volume types to be directly mounted within a container.
+
+### [http://netshare.containx.io](http://netshare.containx.io)
 
 ## NFS Prerequisites on Linux
 
@@ -21,13 +23,13 @@ sudo mount -t nfs4 1.1.1.1:/mountpoint /target/mount
 #### From Source
 
 ```
-$ go get github.com/gondor/docker-volume-netshare
+$ go get github.com/ContainX/docker-volume-netshare
 $ go build
 ```
 
 #### From Binaries
 
-Binaries are available through GitHub releases.  You can download the appropriate binary, package and version from the [Releases](https://github.com/gondor/docker-volume-netshare/releases) page
+Binaries are available through GitHub releases.  You can download the appropriate binary, package and version from the [Releases](https://github.com/ContainX/docker-volume-netshare/releases) page
 
 #### On Ubuntu / Debian
 
@@ -36,7 +38,7 @@ The method below will install the sysvinit and /etc/default options that can be 
 1. Install the Package
 
 ```
-  $ wget https://github.com/gondor/docker-volume-netshare/releases/download/v0.16/docker-volume-netshare_0.16_amd64.deb
+  $ wget https://github.com/ContainX/docker-volume-netshare/releases/download/v0.16/docker-volume-netshare_0.16_amd64.deb
   $ sudo dpkg -i docker-volume-netshare_0.16_amd64.deb
 ```
 
