@@ -1,8 +1,15 @@
 [Unit]
 Description=Docker NFS, AWS EFS & Samba/CIFS Volume Plugin
+<<<<<<< HEAD
 Documentation=https://github.com/ContainX/docker-volume-netshare
 After=nfs-utils.service	docker.service
 Requires=docker.service
+=======
+Documentation=https://github.com/gondor/docker-volume-netshare
+After=nfs-utils.service
+Before=docker.service
+Requires=nfs-utils.service
+>>>>>>> b23fe656606d7043631ecf7c5e8f60cbd3185972
 
 
 [Service]
