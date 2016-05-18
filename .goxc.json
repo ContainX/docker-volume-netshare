@@ -9,7 +9,7 @@
    "subject": "pacesys"
   },
    "publish-github": {
-      "owner": "gondor",
+      "owner": "ContainX",
       "repository": "docker-volume-netshare"
   },
   "debs": {
