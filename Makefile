@@ -1,6 +1,6 @@
-VERSION = 0.17
+VERSION = 0.18
 GO_FMT = gofmt -s -w -l .
-GO_XC = goxc -os="linux" -tasks-="rmbin" 
+GO_XC = goxc -os="linux" -tasks-="rmbin"
 
 GOXC_FILE = .goxc.local.json
 
@@ -18,14 +18,14 @@ goxc:
 	$(shell echo '     "body": "",' >> $(GOXC_FILE))
 	$(shell echo '     "include": "*.zip,*.tar.gz,*.deb,docker-volume-netshare_$(VERSION)_linux_amd64-bin"' >> $(GOXC_FILE))
 	$(shell echo '  }\n } \n}' >> $(GOXC_FILE))
-	$(GO_XC) 
+	$(GO_XC)
 	cp build/$(VERSION)/linux_amd64/docker-volume-netshare build/$(VERSION)/docker-volume-netshare_$(VERSION)_linux_amd64-bin
 
 deps:
 	go get
 
-format: 
-	$(GO_FMT) 
+format:
+	$(GO_FMT)
 
 bintray:
 	$(GO_XC) bintray

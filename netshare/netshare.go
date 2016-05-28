@@ -100,6 +100,7 @@ func setupFlags() {
 	cifsCmd.Flags().StringP(DomainFlag, "d", "", "Domain to use for mounts.  Can also set environment NETSHARE_CIFS_DOMAIN")
 	cifsCmd.Flags().StringP(SecurityFlag, "s", "", "Security mode to use for mounts (mount.cifs's sec option). Can also set environment NETSHARE_CIFS_SECURITY.")
 	cifsCmd.Flags().StringP(NetRCFlag, "", os.Getenv("HOME"), "The default .netrc location.  Default is the user.home directory")
+	cifsCmd.Flags().StringP(OptionsFlag, "o", "", "Options passed to Cifs mounts (ex: nounix,uid=433)")
 
 	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]. Can also be set with NETSHARE_NFS_VERSION")
 	nfsCmd.Flags().StringP(OptionsFlag, "o", "", fmt.Sprintf("Options passed to nfs mounts (ex: %s)", drivers.DefaultNfsV3))
@@ -147,8 +148,12 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	domain := typeOrEnv(cmd, DomainFlag, EnvSambaWG)
 	security := typeOrEnv(cmd, SecurityFlag, EnvSambaSec)
 	netrc, _ := cmd.Flags().GetString(NetRCFlag)
-	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), user, pass, domain, security, netrc)
-	startOutput(fmt.Sprintf("CIFS :: user: %s, pass: ***, domain: %s, secutity: %s, netrc: %s", user, domain, security, netrc))
+	options, _ := cmd.Flags().GetString(OptionsFlag)
+
+	creds := drivers.NewCifsCredentials(user, pass, domain, security)
+
+	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), creds, netrc, options)
+	startOutput(fmt.Sprintf("CIFS :: %s, netrc: %s, opts: %s", creds, netrc, options))
 	start(drivers.CIFS, d)
 }
 

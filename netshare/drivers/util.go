@@ -36,3 +36,18 @@ func run(cmd string) error {
 	}
 	return nil
 }
+
+func merge(src, src2 map[string]string) map[string]string {
+	if len(src) == 0 && len(src2) == 0 {
+		return EmptyMap
+	}
+
+	dst := map[string]string{}
+	for k, v := range src2 {
+		dst[k] = v
+	}
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}

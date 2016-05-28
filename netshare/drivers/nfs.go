@@ -105,7 +105,7 @@ func (n nfsDriver) fixSource(r volume.Request) string {
 func (n nfsDriver) mountVolume(source, dest string, version int) error {
 	var cmd string
 
-	options := n.mountOptions(n.mountm.GetOptions(dest))
+	options := merge(n.mountm.GetOptions(dest), n.nfsopts)
 	opts := ""
 	if val, ok := options[NfsOptions]; ok {
 		opts = val
@@ -134,19 +134,4 @@ func (n nfsDriver) mountVolume(source, dest string, version int) error {
 	}
 	log.Debugf("exec: %s\n", cmd)
 	return run(cmd)
-}
-
-func (n nfsDriver) mountOptions(src map[string]string) map[string]string {
-	if len(n.nfsopts) == 0 && len(src) == 0 {
-		return EmptyMap
-	}
-
-	dst := map[string]string{}
-	for k, v := range n.nfsopts {
-		dst[k] = v
-	}
-	for k, v := range src {
-		dst[k] = v
-	}
-	return dst
 }
