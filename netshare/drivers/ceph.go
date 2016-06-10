@@ -106,7 +106,7 @@ func (n cephDriver) fixSource(r volume.Request) string {
 		return n.mountm.GetOption(r.Name, ShareOpt)
 	}
 	source := strings.Split(r.Name, "/")
-	source[0] = source[0] + ":"
+	source[0] = source[0] + ":" + n.cephport + ":"
 	return strings.Join(source, "/")
 }
 
@@ -116,8 +116,8 @@ func (n cephDriver) mountVolume(source, dest string) error {
 	options := n.mountOptions(n.mountm.GetOptions(dest))
 	opts := ""
 	if val, ok := options[CephOptions]; ok {
-		opts = val
-		fmt.Println("opts = ", opts)
+		fmt.Println("opts = ", val)
+		opts = "-o " + val
 	}
 
 	mountCmd := "mount"
@@ -126,7 +126,8 @@ func (n cephDriver) mountVolume(source, dest string) error {
 		mountCmd = mountCmd + " -t ceph"
 	}
 	
-	cmd = fmt.Sprintf("%s -t ceph %s:%s:/ -o %s,%s,%s %s %s", mountCmd, n.cephmount, n.cephport, n.context, n.username, n.password, opts, dest)
+	//cmd = fmt.Sprintf("%s -t ceph %s:%s:/ -o %s,%s,%s %s %s", mountCmd, n.cephmount, n.cephport, n.context, n.username, n.password, opts, dest)
+	cmd = fmt.Sprintf("%s -t ceph %s -o %s,%s,%s %s %s", mountCmd, source, n.context, n.username, n.password, opts, dest)	
 
 	log.Debugf("exec: %s\n", cmd)
 	return run(cmd)
