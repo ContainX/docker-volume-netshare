@@ -38,6 +38,7 @@ func NewCephDriver(root string, username string, password string, context string
 		 localmount:	localmount,
 		 cephopts:		map[string]string{},
 	}
+
 	if len(cephopts) > 0 {
 		d.cephopts[CephOptions] = cephopts
 	} else {
@@ -128,7 +129,6 @@ func (n cephDriver) mountVolume(source, dest string) error {
 	}
 	
 	cmd = fmt.Sprintf("%s -t ceph %s:%s:/ -o %s,%s,%s %s %s", mountCmd, n.cephmount, n.cephport, n.context, n.username, n.password, opts, dest)
-	fmt.Printf("The final commnand is '", string(cmd), "'")
 
 	log.Debugf("exec: %s\n", cmd)
 	return run(cmd)
