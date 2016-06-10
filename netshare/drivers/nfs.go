@@ -31,6 +31,7 @@ func NewNFSDriver(root string, version int, nfsopts string) nfsDriver {
 	}
 
 	if len(nfsopts) > 0 {
+		fmt.Printf("\t***** From NewNFSDriver: There ARE %d nfsopts\n\r", len(nfsopts))
 		d.nfsopts[NfsOptions] = nfsopts
 	}
 	return d
@@ -106,6 +107,12 @@ func (n nfsDriver) mountVolume(source, dest string, version int) error {
 	var cmd string
 
 	options := merge(n.mountm.GetOptions(dest), n.nfsopts)
+	for key, value := range options {
+			fmt.Printf("key = %d  -- Value = %s\n\r", key, value)
+	}
+	for k, v := range options["nfsopts"] {
+		fmt.Printf("k =  %s :: v = %s\n", k, v)
+	}
 	opts := ""
 	if val, ok := options[NfsOptions]; ok {
 		opts = val
