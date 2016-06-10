@@ -38,10 +38,8 @@ func NewCephDriver(root string, username string, password string, context string
 		 localmount:	localmount,
 		 cephopts:		map[string]string{},
 	}
-
 	if len(cephopts) > 0 {
 		d.cephopts[CephOptions] = cephopts
-	} else {
 	}
 
 	return d

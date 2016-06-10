@@ -145,14 +145,13 @@ func execCEPH(cmd *cobra.Command, args []string) {
 	context, _ := cmd.Flags().GetString(ContextFlag)
 	cephmount, _ := cmd.Flags().GetString(CephMount)
 	cephport, _ := cmd.Flags().GetString(CephPort)
-	localmount, _ := cmd.Flags().GetString(ServerMount)
-	options, _ := cmd.Flags().GetString(OptionsFlag)
+	servermount, _ := cmd.Flags().GetString(ServerMount)
+	cephopts, _ := cmd.Flags().GetString(CephOpts)
 
 	if len(username) > 0 {username = "name=" + username}
 	if len(password) > 0 {password = "secret=" + password}
 	if len(context) > 0 {context = "context=" + "\"" + context + "\""}
-	d := drivers.NewCephDriver(rootForType(drivers.CEPH), username, password, context, cephmount, cephport, localmount, options)
-	//startOutput(fmt.Sprintf("Ceph :: availability-zone: %s, resolve: %v, ns: %s", az, resolve, ns))
+	d := drivers.NewCephDriver(rootForType(drivers.CEPH), username, password, context, cephmount, cephport, servermount, cephopts)
 	start(drivers.CEPH, d)
 }
 
