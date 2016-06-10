@@ -39,11 +39,14 @@ func NewCephDriver(root string, username string, password string, context string
 		 cephopts:		map[string]string{},
 	}
 	if len(cephopts) > 0 {
+<<<<<<< HEAD
+=======
 		fmt.Printf("\t***** From NewCephDriver: There ARE %d cephopts\n\r", len(cephopts))
 		for options, value := range(cephopts) {
 			fmt.Printf("\t***** From NewCephDriver: Option = %d  -- Value = %s\n\r", options, string(value))
 		}
 
+>>>>>>> e9ff9480ab672e7a835018ca7c7c3e7e5f11e6c8
 		d.cephopts[CephOptions] = cephopts
 	} else {
 	}
@@ -132,7 +135,11 @@ func (n cephDriver) mountVolume(source, dest string) error {
 		mountCmd = mountCmd + " -t ceph"
 	}
 	
+<<<<<<< HEAD
+	cmd = fmt.Sprintf("%s -t ceph %s:%s:/ -o %s,%s,%s %s %s", mountCmd, n.cephmount, n.cephport, n.context, n.username, n.password, opts, dest)
+=======
 	cmd = fmt.Sprintf("%s -t ceph %s:%s:/ -o %s,%s,%s %s", mountCmd, n.cephmount, n.cephport, n.context, n.username, n.password, dest)
+>>>>>>> e9ff9480ab672e7a835018ca7c7c3e7e5f11e6c8
 	fmt.Printf("The final commnand is '", string(cmd), "'")
 
 	log.Debugf("exec: %s\n", cmd)

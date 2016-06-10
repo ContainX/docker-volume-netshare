@@ -32,7 +32,11 @@ const (
 	CephMount	   = "sorcemount"
 	CephPort	   = "port"
 	CephOpts       = "options"
+<<<<<<< HEAD
+	ServerMount	   = "servermount"
+=======
 	LocalMount	   = "localmount"
+>>>>>>> e9ff9480ab672e7a835018ca7c7c3e7e5f11e6c8
 	EnvSambaUser   = "NETSHARE_CIFS_USERNAME"
 	EnvSambaPass   = "NETSHARE_CIFS_PASSWORD"
 	EnvSambaWG     = "NETSHARE_CIFS_DOMAIN"
@@ -122,6 +126,15 @@ func setupFlags() {
 	efsCmd.Flags().String(NameServerFlag, "", "Custom DNS nameserver.  [default \"\", uses /etc/resolv.conf]")
 	efsCmd.Flags().Bool(NoResolveFlag, false, "Indicates EFS mount sources are IP Addresses vs File System ID")
 
+<<<<<<< HEAD
+	cephCmd.Flags().StringP(NameFlag, "n", "admin", "Username to use for ceph mount.")
+	cephCmd.Flags().StringP(SecretFlag, "s", "NoneProvided", "Password to use for Ceph Mount.")
+	cephCmd.Flags().StringP(ContextFlag, "c", "system_u:object_r:tmp_t:s0", "SELinux  Context of Ceph Mount.")
+	cephCmd.Flags().StringP(CephMount, "m", "10.0.0.1", "Address of Ceph source mount.")
+	cephCmd.Flags().StringP(CephPort, "p", "6789", "Port to use for ceph mount.")
+	cephCmd.Flags().StringP(ServerMount, "S", "/mnt/ceph", "Directory to use as ceph local mount.")
+	cephCmd.Flags().StringP(OptionsFlag, "o", "", "Options passed to Ceph mounts ")
+=======
 	cephCmd.Flags().StringP(NameFlag, "u", "Larry", "Username to use for ceph mount.")
 	cephCmd.Flags().StringP(SecretFlag, "s", "", "Password to use for Ceph Mount.")
 	cephCmd.Flags().StringP(ContextFlag, "c", "system_u:object_r:tmp_t:s0", "Context of Ceph Mount.")
@@ -129,6 +142,7 @@ func setupFlags() {
 	cephCmd.Flags().StringP(CephPort, "p", "6789", "Port to use for ceph mount.")
 	cephCmd.Flags().StringP(LocalMount, "l", "/mnt/ceph", "Directory to use for ceph local mount.")
 	cephCmd.Flags().StringP(CephOpts, "o", "", "Misc. Ceph options")
+>>>>>>> e9ff9480ab672e7a835018ca7c7c3e7e5f11e6c8
 }
 
 func setupLogger(cmd *cobra.Command, args []string) {
@@ -145,13 +159,23 @@ func execCEPH(cmd *cobra.Command, args []string) {
 	context, _ := cmd.Flags().GetString(ContextFlag)
 	cephmount, _ := cmd.Flags().GetString(CephMount)
 	cephport, _ := cmd.Flags().GetString(CephPort)
+<<<<<<< HEAD
+	localmount, _ := cmd.Flags().GetString(ServerMount)
+	options, _ := cmd.Flags().GetString(OptionsFlag)
+=======
 	localmount, _ := cmd.Flags().GetString(LocalMount)
 	cephopts, _ := cmd.Flags().GetString(CephOpts)
+>>>>>>> e9ff9480ab672e7a835018ca7c7c3e7e5f11e6c8
 
 	if len(username) > 0 {username = "name=" + username}
 	if len(password) > 0 {password = "secret=" + password}
 	if len(context) > 0 {context = "context=" + "\"" + context + "\""}
+<<<<<<< HEAD
+	d := drivers.NewCephDriver(rootForType(drivers.CEPH), username, password, context, cephmount, cephport, localmount, options)
+	//startOutput(fmt.Sprintf("Ceph :: availability-zone: %s, resolve: %v, ns: %s", az, resolve, ns))
+=======
 	d := drivers.NewCephDriver(rootForType(drivers.CEPH), username, password, context, cephmount, cephport, localmount, cephopts)
+>>>>>>> e9ff9480ab672e7a835018ca7c7c3e7e5f11e6c8
 	start(drivers.CEPH, d)
 }
 
