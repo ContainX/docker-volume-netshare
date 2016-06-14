@@ -9,18 +9,18 @@ import (
 )
 
 const (
-	CephOptions   = "cephopts"
+	CephOptions = "cephopts"
 )
 
 type cephDriver struct {
 	volumeDriver
-	username string
-	password string
-	context string
-	cephmount string
-	cephport string
+	username   string
+	password   string
+	context    string
+	cephmount  string
+	cephport   string
 	localmount string
-	cephopts map[string]string
+	cephopts   map[string]string
 }
 
 //var (
@@ -29,14 +29,14 @@ type cephDriver struct {
 
 func NewCephDriver(root string, username string, password string, context string, cephmount string, cephport string, localmount string, cephopts string) cephDriver {
 	d := cephDriver{
-		 volumeDriver:  newVolumeDriver(root),
-		 username:      username,
-		 password:		password,
-		 context:		context,
-		 cephmount:		cephmount,
-		 cephport:		cephport,
-		 localmount:	localmount,
-		 cephopts:		map[string]string{},
+		volumeDriver: newVolumeDriver(root),
+		username:     username,
+		password:     password,
+		context:      context,
+		cephmount:    cephmount,
+		cephport:     cephport,
+		localmount:   localmount,
+		cephopts:     map[string]string{},
 	}
 	if len(cephopts) > 0 {
 		d.cephopts[CephOptions] = cephopts
@@ -44,7 +44,6 @@ func NewCephDriver(root string, username string, password string, context string
 
 	return d
 }
-
 
 func (n cephDriver) Mount(r volume.Request) volume.Response {
 	log.Debugf("Entering Mount: %v", r)
@@ -125,9 +124,9 @@ func (n cephDriver) mountVolume(source, dest string) error {
 	if log.GetLevel() == log.DebugLevel {
 		mountCmd = mountCmd + " -t ceph"
 	}
-	
+
 	//cmd = fmt.Sprintf("%s -t ceph %s:%s:/ -o %s,%s,%s %s %s", mountCmd, n.cephmount, n.cephport, n.context, n.username, n.password, opts, dest)
-	cmd = fmt.Sprintf("%s -t ceph %s -o %s,%s,%s %s %s", mountCmd, source, n.context, n.username, n.password, opts, dest)	
+	cmd = fmt.Sprintf("%s -t ceph %s -o %s,%s,%s %s %s", mountCmd, source, n.context, n.username, n.password, opts, dest)
 
 	log.Debugf("exec: %s\n", cmd)
 	return run(cmd)

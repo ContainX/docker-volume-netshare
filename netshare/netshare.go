@@ -27,12 +27,12 @@ const (
 	PortFlag       = "port"
 	NameServerFlag = "nameserver"
 	NameFlag       = "name"
-	SecretFlag	   = "secret"
-	ContextFlag	   = "context"
-	CephMount	   = "sorcemount"
-	CephPort	   = "port"
+	SecretFlag     = "secret"
+	ContextFlag    = "context"
+	CephMount      = "sorcemount"
+	CephPort       = "port"
 	CephOpts       = "options"
-	ServerMount	   = "servermount"
+	ServerMount    = "servermount"
 	EnvSambaUser   = "NETSHARE_CIFS_USERNAME"
 	EnvSambaPass   = "NETSHARE_CIFS_PASSWORD"
 	EnvSambaWG     = "NETSHARE_CIFS_DOMAIN"
@@ -148,9 +148,15 @@ func execCEPH(cmd *cobra.Command, args []string) {
 	servermount, _ := cmd.Flags().GetString(ServerMount)
 	cephopts, _ := cmd.Flags().GetString(CephOpts)
 
-	if len(username) > 0 {username = "name=" + username}
-	if len(password) > 0 {password = "secret=" + password}
-	if len(context) > 0 {context = "context=" + "\"" + context + "\""}
+	if len(username) > 0 {
+		username = "name=" + username
+	}
+	if len(password) > 0 {
+		password = "secret=" + password
+	}
+	if len(context) > 0 {
+		context = "context=" + "\"" + context + "\""
+	}
 	d := drivers.NewCephDriver(rootForType(drivers.CEPH), username, password, context, cephmount, cephport, servermount, cephopts)
 	start(drivers.CEPH, d)
 }
