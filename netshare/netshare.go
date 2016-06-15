@@ -98,7 +98,7 @@ var (
 func Execute() {
 	setupFlags()
 	rootCmd.Long = fmt.Sprintf(NetshareHelp, Version, BuildDate)
-	rootCmd.AddCommand(versionCmd, cifsCmd, nfsCmd, efsCmd, cephCmd, bindCmd)
+	rootCmd.AddCommand(versionCmd, cifsCmd, nfsCmd, efsCmd, cephCmd)
 	rootCmd.Execute()
 }
 

@@ -106,9 +106,6 @@ func (n nfsDriver) mountVolume(source, dest string, version int) error {
 	var cmd string
 
 	options := merge(n.mountm.GetOptions(dest), n.nfsopts)
-	for k, v := range options["nfsopts"] {
-		fmt.Printf("k =  %s :: v = %s\n", k, v)
-	}
 	opts := ""
 	if val, ok := options[NfsOptions]; ok {
 		opts = val
