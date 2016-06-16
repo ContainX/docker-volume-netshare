@@ -26,6 +26,13 @@ const (
 	TCPFlag        = "tcp"
 	PortFlag       = "port"
 	NameServerFlag = "nameserver"
+	NameFlag       = "name"
+	SecretFlag     = "secret"
+	ContextFlag    = "context"
+	CephMount      = "sorcemount"
+	CephPort       = "port"
+	CephOpts       = "options"
+	ServerMount    = "servermount"
 	EnvSambaUser   = "NETSHARE_CIFS_USERNAME"
 	EnvSambaPass   = "NETSHARE_CIFS_PASSWORD"
 	EnvSambaWG     = "NETSHARE_CIFS_DOMAIN"
@@ -70,6 +77,12 @@ var (
 		Run:   execEFS,
 	}
 
+	cephCmd = &cobra.Command{
+		Use:   "ceph",
+		Short: "run plugin in Ceph mode",
+		Run:   execCEPH,
+	}
+
 	versionCmd = &cobra.Command{
 		Use:   "version",
 		Short: "Display current version and build date",
@@ -85,7 +98,7 @@ var (
 func Execute() {
 	setupFlags()
 	rootCmd.Long = fmt.Sprintf(NetshareHelp, Version, BuildDate)
-	rootCmd.AddCommand(versionCmd, cifsCmd, nfsCmd, efsCmd)
+	rootCmd.AddCommand(versionCmd, cifsCmd, nfsCmd, efsCmd, cephCmd)
 	rootCmd.Execute()
 }
 
@@ -108,6 +121,14 @@ func setupFlags() {
 	efsCmd.Flags().String(AvailZoneFlag, "", "AWS Availability zone [default: \"\", looks up via metadata]")
 	efsCmd.Flags().String(NameServerFlag, "", "Custom DNS nameserver.  [default \"\", uses /etc/resolv.conf]")
 	efsCmd.Flags().Bool(NoResolveFlag, false, "Indicates EFS mount sources are IP Addresses vs File System ID")
+
+	cephCmd.Flags().StringP(NameFlag, "n", "admin", "Username to use for ceph mount.")
+	cephCmd.Flags().StringP(SecretFlag, "s", "NoneProvided", "Password to use for Ceph Mount.")
+	cephCmd.Flags().StringP(ContextFlag, "c", "system_u:object_r:tmp_t:s0", "SELinux  Context of Ceph Mount.")
+	cephCmd.Flags().StringP(CephMount, "m", "10.0.0.1", "Address of Ceph source mount.")
+	cephCmd.Flags().StringP(CephPort, "p", "6789", "Port to use for ceph mount.")
+	cephCmd.Flags().StringP(ServerMount, "S", "/mnt/ceph", "Directory to use as ceph local mount.")
+	cephCmd.Flags().StringP(OptionsFlag, "o", "", "Options passed to Ceph mounts ")
 }
 
 func setupLogger(cmd *cobra.Command, args []string) {
@@ -116,6 +137,28 @@ func setupLogger(cmd *cobra.Command, args []string) {
 	} else {
 		log.SetLevel(log.InfoLevel)
 	}
+}
+
+func execCEPH(cmd *cobra.Command, args []string) {
+	username, _ := cmd.Flags().GetString(NameFlag)
+	password, _ := cmd.Flags().GetString(SecretFlag)
+	context, _ := cmd.Flags().GetString(ContextFlag)
+	cephmount, _ := cmd.Flags().GetString(CephMount)
+	cephport, _ := cmd.Flags().GetString(CephPort)
+	servermount, _ := cmd.Flags().GetString(ServerMount)
+	cephopts, _ := cmd.Flags().GetString(CephOpts)
+
+	if len(username) > 0 {
+		username = "name=" + username
+	}
+	if len(password) > 0 {
+		password = "secret=" + password
+	}
+	if len(context) > 0 {
+		context = "context=" + "\"" + context + "\""
+	}
+	d := drivers.NewCephDriver(rootForType(drivers.CEPH), username, password, context, cephmount, cephport, servermount, cephopts)
+	start(drivers.CEPH, d)
 }
 
 func execNFS(cmd *cobra.Command, args []string) {
