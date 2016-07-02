@@ -196,7 +196,11 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	creds := drivers.NewCifsCredentials(user, pass, domain, security)
 
 	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), creds, netrc, options)
-	startOutput(fmt.Sprintf("CIFS :: %s, netrc: %s, opts: %s", creds, netrc, options))
+	if len(user) > 0 {
+		startOutput(fmt.Sprintf("CIFS :: %s, opts: %s", creds, options))
+	} else {
+		startOutput(fmt.Sprintf("CIFS :: netrc: %s, opts: %s", netrc, options))
+	}
 	start(drivers.CIFS, d)
 }
 
