@@ -106,28 +106,25 @@ func (e efsDriver) fixSource(r volume.Request) string {
 	}
 
 	v := strings.Split(name, "/")
+	uri := v[0]
 	if e.resolve {
-		uri := fmt.Sprintf(EfsTemplateURI, e.availzone, v[0], e.region)
+		uri = fmt.Sprintf(EfsTemplateURI, e.availzone, v[0], e.region)
 		if i, ok := e.dnscache[uri]; ok {
-			return mountSuffix(i)
+			uri = i
 		}
 
 		log.Debugf("Attempting to resolve: %s", uri)
 		if ip, err := e.resolver.Lookup(uri); err == nil {
 			log.Debugf("Resolved Addresses: %s", ip)
 			e.dnscache[uri] = ip
-			return mountSuffix(ip)
+			uri = ip
 		} else {
 			log.Errorf("Error during resolve: %s", err.Error())
-			return mountSuffix(uri)
+			uri = uri
 		}
 	}
-	v[0] = v[0] + ":"
+	v[0] = uri + ":"
 	return strings.Join(v, "/")
-}
-
-func mountSuffix(uri string) string {
-	return uri + ":/"
 }
 
 func (e efsDriver) mountVolume(source, dest string) error {
