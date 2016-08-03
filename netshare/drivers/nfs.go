@@ -46,7 +46,11 @@ func (n nfsDriver) Mount(r volume.Request) volume.Response {
 	if n.mountm.HasMount(r.Name) && n.mountm.Count(r.Name) > 0 {
 		log.Infof("Using existing NFS volume mount: %s", hostdir)
 		n.mountm.Increment(r.Name)
-		return volume.Response{Mountpoint: hostdir}
+		if err := run(fmt.Sprintf("mountpoint -q %s", hostdir)); err != nil {
+			log.Infof("Existing NFS volume not mounted, force remount.")
+		} else {
+			return volume.Response{Mountpoint: hostdir}
+		}
 	}
 
 	log.Infof("Mounting NFS volume %s on %s", source, hostdir)
