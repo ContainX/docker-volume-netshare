@@ -55,7 +55,7 @@ func (n nfsDriver) Mount(r volume.Request) volume.Response {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := n.mountVolume(source, hostdir, n.version); err != nil {
+	if err := n.mountVolume(r.Name, source, hostdir, n.version); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 	n.mountm.Add(r.Name, hostdir)
@@ -102,10 +102,10 @@ func (n nfsDriver) fixSource(r volume.Request) string {
 	return strings.Join(source, "/")
 }
 
-func (n nfsDriver) mountVolume(source, dest string, version int) error {
+func (n nfsDriver) mountVolume(name, source, dest string, version int) error {
 	var cmd string
 
-	options := merge(n.mountm.GetOptions(dest), n.nfsopts)
+	options := merge(n.mountm.GetOptions(name), n.nfsopts)
 	opts := ""
 	if val, ok := options[NfsOptions]; ok {
 		opts = val
