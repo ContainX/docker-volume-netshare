@@ -46,7 +46,11 @@ func (n nfsDriver) Mount(r volume.Request) volume.Response {
 	if n.mountm.HasMount(r.Name) && n.mountm.Count(r.Name) > 0 {
 		log.Infof("Using existing NFS volume mount: %s", hostdir)
 		n.mountm.Increment(r.Name)
-		return volume.Response{Mountpoint: hostdir}
+		if err := run(fmt.Sprintf("mountpoint -q %s", hostdir)); err != nil {
+			log.Infof("Existing NFS volume not mounted, force remount.")
+		} else {
+			return volume.Response{Mountpoint: hostdir}
+		}
 	}
 
 	log.Infof("Mounting NFS volume %s on %s", source, hostdir)
@@ -123,6 +127,7 @@ func (n nfsDriver) mountVolume(source, dest string, version int) error {
 		if len(opts) < 1 {
 			opts = DefaultNfsV3
 		}
+		cmd = fmt.Sprintf("%s -t nfs -o %s %s %s", mountCmd, opts, source, dest)
 	default:
 		log.Debugf("Mounting with NFSv4 - src: %s, dest: %s", source, dest)
 		if len(opts) > 0 {
