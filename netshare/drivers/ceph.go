@@ -45,12 +45,12 @@ func NewCephDriver(root string, username string, password string, context string
 	return d
 }
 
-func (n cephDriver) Mount(r volume.Request) volume.Response {
+func (n cephDriver) Mount(r volume.MountRequest) volume.Response {
 	log.Debugf("Entering Mount: %v", r)
 	n.m.Lock()
 	defer n.m.Unlock()
 	hostdir := mountpoint(n.root, r.Name)
-	source := n.fixSource(r)
+	source := n.fixSource(r.Name, r.ID)
 	if n.mountm.HasMount(r.Name) && n.mountm.Count(r.Name) > 0 {
 		log.Infof("Using existing CEPH volume mount: %s", hostdir)
 		n.mountm.Increment(r.Name)
@@ -69,7 +69,7 @@ func (n cephDriver) Mount(r volume.Request) volume.Response {
 	return volume.Response{Mountpoint: hostdir}
 }
 
-func (n cephDriver) Unmount(r volume.Request) volume.Response {
+func (n cephDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	log.Debugf("Entering Unmount: %v", r)
 
 	n.m.Lock()
@@ -100,11 +100,11 @@ func (n cephDriver) Unmount(r volume.Request) volume.Response {
 	return volume.Response{}
 }
 
-func (n cephDriver) fixSource(r volume.Request) string {
-	if n.mountm.HasOption(r.Name, ShareOpt) {
-		return n.mountm.GetOption(r.Name, ShareOpt)
+func (n cephDriver) fixSource(name, id string) string {
+	if n.mountm.HasOption(name, ShareOpt) {
+		return n.mountm.GetOption(name, ShareOpt)
 	}
-	source := strings.Split(r.Name, "/")
+	source := strings.Split(name, "/")
 	source[0] = source[0] + ":" + n.cephport + ":"
 	return strings.Join(source, "/")
 }

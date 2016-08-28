@@ -44,11 +44,11 @@ func NewEFSDriver(root, az, nameserver string, resolve bool) efsDriver {
 	return d
 }
 
-func (e efsDriver) Mount(r volume.Request) volume.Response {
+func (e efsDriver) Mount(r volume.MountRequest) volume.Response {
 	e.m.Lock()
 	defer e.m.Unlock()
 	hostdir := mountpoint(e.root, r.Name)
-	source := e.fixSource(r)
+	source := e.fixSource(r.Name, r.ID)
 
 	if e.mountm.HasMount(r.Name) && e.mountm.Count(r.Name) > 0 {
 		log.Infof("Using existing EFS volume mount: %s", hostdir)
@@ -69,11 +69,11 @@ func (e efsDriver) Mount(r volume.Request) volume.Response {
 	return volume.Response{Mountpoint: hostdir}
 }
 
-func (e efsDriver) Unmount(r volume.Request) volume.Response {
+func (e efsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	e.m.Lock()
 	defer e.m.Unlock()
 	hostdir := mountpoint(e.root, r.Name)
-	source := e.fixSource(r)
+	source := e.fixSource(r.Name, r.ID)
 
 	if e.mountm.HasMount(r.Name) {
 		if e.mountm.Count(r.Name) > 1 {
@@ -99,10 +99,9 @@ func (e efsDriver) Unmount(r volume.Request) volume.Response {
 	return volume.Response{}
 }
 
-func (e efsDriver) fixSource(r volume.Request) string {
-	name := r.Name
-	if e.mountm.HasOption(r.Name, ShareOpt) {
-		name = e.mountm.GetOption(r.Name, ShareOpt)
+func (e efsDriver) fixSource(name, id string) string {
+	if e.mountm.HasOption(name, ShareOpt) {
+		name = e.mountm.GetOption(name, ShareOpt)
 	}
 
 	v := strings.Split(name, "/")
@@ -120,7 +119,6 @@ func (e efsDriver) fixSource(r volume.Request) string {
 			uri = ip
 		} else {
 			log.Errorf("Error during resolve: %s", err.Error())
-			uri = uri
 		}
 	}
 	v[0] = uri + ":"

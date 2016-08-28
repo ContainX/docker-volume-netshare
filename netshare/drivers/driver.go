@@ -69,3 +69,12 @@ func (v volumeDriver) List(r volume.Request) volume.Response {
 	log.Debugf("Entering List: %v", r)
 	return volume.Response{Volumes: v.mountm.GetVolumes(v.root)}
 }
+
+func (v volumeDriver) Capabilities(r volume.Request) volume.Response {
+	log.Debugf("Entering Capabilities: %v", r)
+	return volume.Response{
+		Capabilities: volume.Capability {
+			Scope: "global",
+		},
+	}
+}

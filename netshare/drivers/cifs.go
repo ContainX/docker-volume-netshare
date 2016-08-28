@@ -63,14 +63,14 @@ func parseNetRC(path string) *netrc.Netrc {
 	return nil
 }
 
-func (c cifsDriver) Mount(r volume.Request) volume.Response {
+func (c cifsDriver) Mount(r volume.MountRequest) volume.Response {
 	c.m.Lock()
 	defer c.m.Unlock()
 	hostdir := mountpoint(c.root, r.Name)
-	source := c.fixSource(r)
-	host := c.parseHost(r)
+	source := c.fixSource(r.Name, r.ID)
+	host := c.parseHost(r.Name)
 
-	log.Infof("Mount: %s, %v", r.Name, r.Options)
+	log.Infof("Mount: %s, ID: %s", r.Name, r.ID)
 
 	if c.mountm.HasMount(r.Name) && c.mountm.Count(r.Name) > 0 {
 		log.Infof("Using existing CIFS volume mount: %s", hostdir)
@@ -91,11 +91,11 @@ func (c cifsDriver) Mount(r volume.Request) volume.Response {
 	return volume.Response{Mountpoint: hostdir}
 }
 
-func (c cifsDriver) Unmount(r volume.Request) volume.Response {
+func (c cifsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	c.m.Lock()
 	defer c.m.Unlock()
 	hostdir := mountpoint(c.root, r.Name)
-	source := c.fixSource(r)
+	source := c.fixSource(r.Name, r.ID)
 
 	if c.mountm.HasMount(r.Name) {
 		if c.mountm.Count(r.Name) > 1 {
@@ -121,24 +121,24 @@ func (c cifsDriver) Unmount(r volume.Request) volume.Response {
 	return volume.Response{}
 }
 
-func (c cifsDriver) fixSource(r volume.Request) string {
-	if c.mountm.HasOption(r.Name, ShareOpt) {
-		return "//" + c.mountm.GetOption(r.Name, ShareOpt)
+func (c cifsDriver) fixSource(name, id string) string {
+	if c.mountm.HasOption(name, ShareOpt) {
+		return "//" + c.mountm.GetOption(name, ShareOpt)
 	}
-	return "//" + r.Name
+	return "//" + name
 }
 
-func (c cifsDriver) parseHost(r volume.Request) string {
-	name := r.Name
-	if c.mountm.HasOption(r.Name, ShareOpt) {
-		name = c.mountm.GetOption(r.Name, ShareOpt)
+func (c cifsDriver) parseHost(name string) string {
+	n := name
+	if c.mountm.HasOption(name, ShareOpt) {
+		n = c.mountm.GetOption(name, ShareOpt)
 	}
 
-	if strings.ContainsAny(name, "/") {
-		s := strings.Split(name, "/")
+	if strings.ContainsAny(n, "/") {
+		s := strings.Split(n, "/")
 		return s[0]
 	}
-	return name
+	return n
 }
 
 func (s cifsDriver) mountVolume(source, dest string, creds *CifsCreds) error {

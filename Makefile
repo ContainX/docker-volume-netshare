@@ -1,6 +1,6 @@
-VERSION = 0.19
+VERSION = 0.20
 GO_FMT = gofmt -s -w -l .
-GO_XC = goxc -os="linux" -tasks-="rmbin"
+GO_XC = goxc -os="linux" -bc="linux,amd64" -tasks-="rmbin"
 
 GOXC_FILE = .goxc.local.json
 
