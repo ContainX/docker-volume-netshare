@@ -84,7 +84,7 @@ func (c cifsDriver) Mount(r volume.MountRequest) volume.Response {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := c.mountVolume(source, hostdir, c.getCreds(host)); err != nil {
+	if err := c.mountVolume(r.Name, source, hostdir, c.getCreds(host)); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 	c.mountm.Add(r.Name, hostdir)
@@ -141,20 +141,20 @@ func (c cifsDriver) parseHost(name string) string {
 	return n
 }
 
-func (s cifsDriver) mountVolume(source, dest string, creds *CifsCreds) error {
+func (s cifsDriver) mountVolume(name, source, dest string, creds *CifsCreds) error {
 	var opts bytes.Buffer
 	var user = creds.user
 	var pass = creds.pass
 	var domain = creds.domain
 	var security = creds.security
 
-	options := merge(s.mountm.GetOptions(dest), s.cifsopts)
+	options := merge(s.mountm.GetOptions(name), s.cifsopts)
 	if val, ok := options[CifsOpts]; ok {
 		opts.WriteString(val + ",")
 	}
 
-	if s.mountm.HasOptions(dest) {
-		mopts := s.mountm.GetOptions(dest)
+	if s.mountm.HasOptions(name) {
+		mopts := s.mountm.GetOptions(name)
 		if v, found := mopts[UsernameOpt]; found {
 			user = v
 		}

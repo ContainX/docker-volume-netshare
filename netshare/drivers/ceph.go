@@ -62,7 +62,7 @@ func (n cephDriver) Mount(r volume.MountRequest) volume.Response {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := n.mountVolume(source, hostdir); err != nil {
+	if err := n.mountVolume(r.Name, source, hostdir); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 	n.mountm.Add(r.Name, hostdir)
@@ -109,10 +109,10 @@ func (n cephDriver) fixSource(name, id string) string {
 	return strings.Join(source, "/")
 }
 
-func (n cephDriver) mountVolume(source, dest string) error {
+func (n cephDriver) mountVolume(name, source, dest string) error {
 	var cmd string
 
-	options := n.mountOptions(n.mountm.GetOptions(dest))
+	options := n.mountOptions(n.mountm.GetOptions(name))
 	opts := ""
 	if val, ok := options[CephOptions]; ok {
 		fmt.Println("opts = ", val)
@@ -128,7 +128,7 @@ func (n cephDriver) mountVolume(source, dest string) error {
 	//cmd = fmt.Sprintf("%s -t ceph %s:%s:/ -o %s,%s,%s %s %s", mountCmd, n.cephmount, n.cephport, n.context, n.username, n.password, opts, dest)
 	cmd = fmt.Sprintf("%s -t ceph %s -o %s,%s,%s %s %s", mountCmd, source, n.context, n.username, n.password, opts, dest)
 
-	log.Debugf("exec: %s\n", cmd)
+	log.Debugf("exec: %s\n", strings.Replace(cmd, ","+n.password, ",****", 1))
 	return run(cmd)
 }
 
