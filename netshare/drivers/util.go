@@ -25,8 +25,8 @@ func createDest(dest string) error {
 	return nil
 }
 
-func mountpoint(root, name string) string {
-	return filepath.Join(root, name)
+func mountpoint(elem ...string) string {
+	return filepath.Join(elem...)
 }
 
 func run(cmd string) error {

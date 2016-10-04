@@ -4,10 +4,12 @@ import (
 	"errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
+	"strings"
 )
 
 const (
 	ShareOpt = "share"
+	CreateOpt = "create"
 )
 
 type mount struct {
@@ -66,6 +68,14 @@ func (m *mountManager) GetOption(name, key string) string {
 	return ""
 }
 
+func (m *mountManager) GetOptionAsBool(name, key string) bool {
+	rv := strings.ToLower(m.GetOption(name, key))
+	if rv == "yes" || rv == "true" {
+		return true
+	}
+	return false
+}
+
 func (m *mountManager) IsActiveMount(name string) bool {
 	c, found := m.mounts[name]
 	return found && c.connections > 0
@@ -88,12 +98,15 @@ func (m *mountManager) Add(name, hostdir string) {
 	}
 }
 
-func (m *mountManager) Create(name, hostdir string, opts map[string]string) {
+func (m *mountManager) Create(name, hostdir string, opts map[string]string) *mount {
 	c, found := m.mounts[name]
 	if found && c.connections > 0 {
 		c.opts = opts
+		return c
 	} else {
-		m.mounts[name] = &mount{name: name, hostdir: hostdir, managed: true, opts: opts, connections: 0}
+		mnt := &mount{name: name, hostdir: hostdir, managed: true, opts: opts, connections: 0}
+		m.mounts[name] = mnt
+		return mnt
 	}
 }
 

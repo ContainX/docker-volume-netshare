@@ -6,6 +6,7 @@ import (
 	"github.com/docker/go-plugins-helpers/volume"
 	"os"
 	"strings"
+	"path/filepath"
 )
 
 const (
@@ -40,6 +41,8 @@ func (n nfsDriver) Mount(r volume.MountRequest) volume.Response {
 	log.Debugf("Entering Mount: %v", r)
 	n.m.Lock()
 	defer n.m.Unlock()
+
+
 	hostdir := mountpoint(n.root, r.Name)
 	source := n.fixSource(r.Name, r.ID)
 
@@ -63,6 +66,16 @@ func (n nfsDriver) Mount(r volume.MountRequest) volume.Response {
 		return volume.Response{Err: err.Error()}
 	}
 	n.mountm.Add(r.Name, hostdir)
+
+	if n.mountm.GetOption(r.Name, ShareOpt) != "" && n.mountm.GetOptionAsBool(r.Name, CreateOpt) {
+		log.Infof("Mount: Share and Create options enabled - using %s as sub-dir mount", r.Name)
+		datavol := filepath.Join(hostdir, r.Name)
+		if err := createDest(filepath.Join(hostdir, r.Name)); err != nil {
+			return volume.Response{Err: err.Error()}
+		}
+		hostdir = datavol
+	}
+
 	return volume.Response{Mountpoint: hostdir}
 }
 

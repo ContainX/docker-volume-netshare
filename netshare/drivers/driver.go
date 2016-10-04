@@ -32,7 +32,12 @@ func (v volumeDriver) Create(r volume.Request) volume.Response {
 	if err := createDest(dest); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
+
 	v.mountm.Create(r.Name, dest, r.Options)
+	//if v.mountm.GetOption(r.Name, ShareOpt) != "" && v.mountm.GetOptionAsBool(r.Name, CreateOpt) {
+	//	log.Debugf("Create volume -> name: %s, creating option found, creating: %s", r.Name, r.Options)
+	//
+	//}
 	return volume.Response{}
 }
 
