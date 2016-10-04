@@ -4,7 +4,8 @@
 
 Mount NFS v3/4, AWS EFS or CIFS inside your docker containers.  This is a docker plugin which enables these volume types to be directly mounted within a container.
 
-### [http://netshare.containx.io](http://netshare.containx.io)
+### Documentation [http://netshare.containx.io](http://netshare.containx.io)
+### Chat/Slack [https://containx.slack.com](https://containx.slack.com)
 
 ## NFS Prerequisites on Linux
 
