@@ -5,7 +5,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
 	"os"
-	"strings"
 	"path/filepath"
 )
 
@@ -42,13 +41,22 @@ func (n nfsDriver) Mount(r volume.MountRequest) volume.Response {
 	n.m.Lock()
 	defer n.m.Unlock()
 
+	resolvedName, resOpts := resolveName(r.Name)
 
-	hostdir := mountpoint(n.root, r.Name)
-	source := n.fixSource(r.Name, r.ID)
+	hostdir := mountpoint(n.root, resolvedName)
+	source := n.fixSource(resolvedName)
 
-	if n.mountm.HasMount(r.Name) && n.mountm.Count(r.Name) > 0 {
+	// Support adhoc mounts (outside of docker volume create)
+	// need to adjust source for ShareOpt
+	if resOpts != nil {
+		if share, found := resOpts[ShareOpt]; found {
+			source = n.fixSource(share)
+		}
+	}
+
+	if n.mountm.HasMount(resolvedName) && n.mountm.Count(resolvedName) > 0 {
 		log.Infof("Using existing NFS volume mount: %s", hostdir)
-		n.mountm.Increment(r.Name)
+		n.mountm.Increment(resolvedName)
 		if err := run(fmt.Sprintf("mountpoint -q %s", hostdir)); err != nil {
 			log.Infof("Existing NFS volume not mounted, force remount.")
 		} else {
@@ -62,15 +70,19 @@ func (n nfsDriver) Mount(r volume.MountRequest) volume.Response {
 		return volume.Response{Err: err.Error()}
 	}
 
-	if err := n.mountVolume(r.Name, source, hostdir, n.version); err != nil {
+	if n.mountm.HasMount(resolvedName) == false {
+		n.mountm.Create(resolvedName, hostdir, resOpts)
+	}
+
+	if err := n.mountVolume(resolvedName, source, hostdir, n.version); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
-	n.mountm.Add(r.Name, hostdir)
+	n.mountm.Add(resolvedName, hostdir)
 
-	if n.mountm.GetOption(r.Name, ShareOpt) != "" && n.mountm.GetOptionAsBool(r.Name, CreateOpt) {
-		log.Infof("Mount: Share and Create options enabled - using %s as sub-dir mount", r.Name)
-		datavol := filepath.Join(hostdir, r.Name)
-		if err := createDest(filepath.Join(hostdir, r.Name)); err != nil {
+	if n.mountm.GetOption(resolvedName, ShareOpt) != "" && n.mountm.GetOptionAsBool(resolvedName, CreateOpt) {
+		log.Infof("Mount: Share and Create options enabled - using %s as sub-dir mount", resolvedName)
+		datavol := filepath.Join(hostdir, resolvedName)
+		if err := createDest(filepath.Join(hostdir, resolvedName)); err != nil {
 			return volume.Response{Err: err.Error()}
 		}
 		hostdir = datavol
@@ -84,24 +96,28 @@ func (n nfsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 
 	n.m.Lock()
 	defer n.m.Unlock()
-	hostdir := mountpoint(n.root, r.Name)
 
-	if n.mountm.HasMount(r.Name) {
-		if n.mountm.Count(r.Name) > 1 {
-			log.Printf("Skipping unmount for %s - in use by other containers", r.Name)
-			n.mountm.Decrement(r.Name)
+	resolvedName, _ := resolveName(r.Name)
+
+	hostdir := mountpoint(n.root, resolvedName)
+
+	if n.mountm.HasMount(resolvedName) {
+		if n.mountm.Count(resolvedName) > 1 {
+			log.Printf("Skipping unmount for %s - in use by other containers", resolvedName)
+			n.mountm.Decrement(resolvedName)
 			return volume.Response{}
 		}
-		n.mountm.Decrement(r.Name)
+		n.mountm.Decrement(resolvedName)
 	}
 
-	log.Infof("Unmounting volume name %s from %s", r.Name, hostdir)
+	log.Infof("Unmounting volume name %s from %s", resolvedName, hostdir)
 
 	if err := run(fmt.Sprintf("umount %s", hostdir)); err != nil {
+		log.Errorf("Error unmounting volume from host: %s", err.Error())
 		return volume.Response{Err: err.Error()}
 	}
 
-	n.mountm.DeleteIfNotManaged(r.Name)
+	n.mountm.DeleteIfNotManaged(resolvedName)
 
 	if err := os.RemoveAll(hostdir); err != nil {
 		return volume.Response{Err: err.Error()}
@@ -110,13 +126,11 @@ func (n nfsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	return volume.Response{}
 }
 
-func (n nfsDriver) fixSource(name, id string) string {
+func (n nfsDriver) fixSource(name string) string {
 	if n.mountm.HasOption(name, ShareOpt) {
-		return n.mountm.GetOption(name, ShareOpt)
+		return addShareColon(n.mountm.GetOption(name, ShareOpt))
 	}
-	source := strings.Split(name, "/")
-	source[0] = source[0] + ":"
-	return strings.Join(source, "/")
+	return addShareColon(name)
 }
 
 func (n nfsDriver) mountVolume(name, source, dest string, version int) error {

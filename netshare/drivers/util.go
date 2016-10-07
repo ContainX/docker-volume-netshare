@@ -6,6 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+)
+
+const (
+	ShareSplitIndentifer = "#"
 )
 
 func createDest(dest string) error {
@@ -23,6 +28,32 @@ func createDest(dest string) error {
 		return fmt.Errorf("%v already exist and it's not a directory", dest)
 	}
 	return nil
+}
+
+// Used to support on the fly volume creation using docker run. If = is in the name we split
+// and elem[1] is the volume name
+func resolveName(name string) (string, map[string]string) {
+	if strings.Contains(name, ShareSplitIndentifer) {
+		sharevol := strings.Split(name, ShareSplitIndentifer)
+		opts := map[string]string{}
+		opts[ShareOpt] = sharevol[0]
+		opts[CreateOpt] = "true"
+		return sharevol[1], opts
+	}
+	return name, nil
+}
+
+func shareDefinedWithVolume(name string) bool {
+	return strings.Contains(name, ShareSplitIndentifer)
+}
+
+func addShareColon(share string) string {
+	if strings.Contains(share, ":") {
+		return share
+	}
+	source := strings.Split(share, "/")
+	source[0] = source[0] + ":"
+	return strings.Join(source, "/")
 }
 
 func mountpoint(elem ...string) string {

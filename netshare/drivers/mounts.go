@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	ShareOpt = "share"
+	ShareOpt  = "share"
 	CreateOpt = "create"
 )
 
@@ -111,6 +111,7 @@ func (m *mountManager) Create(name, hostdir string, opts map[string]string) *mou
 }
 
 func (m *mountManager) Delete(name string) error {
+	log.Debugf("Delete volume: %s, connections: %d", name, m.Count(name))
 	if m.HasMount(name) {
 		if m.Count(name) < 1 {
 			delete(m.mounts, name)

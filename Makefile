@@ -1,6 +1,6 @@
-VERSION = 0.30
+VERSION = 0.31
 GO_FMT = gofmt -s -w -l .
-GO_XC = goxc -os="linux" -bc="linux,amd64" -tasks-="rmbin"
+GO_XC = goxc -os="linux" -bc="linux,amd64,arm" -tasks-="rmbin"
 
 GOXC_FILE = .goxc.local.json
 
@@ -20,6 +20,7 @@ goxc:
 	$(shell echo '  }\n } \n}' >> $(GOXC_FILE))
 	$(GO_XC)
 	cp build/$(VERSION)/linux_amd64/docker-volume-netshare build/$(VERSION)/docker-volume-netshare_$(VERSION)_linux_amd64-bin
+	cp build/$(VERSION)/linux_arm/docker-volume-netshare build/$(VERSION)/docker-volume-netshare_$(VERSION)_linux_arm-bin
 
 deps:
 	go get

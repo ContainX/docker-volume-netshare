@@ -26,46 +26,56 @@ func (v volumeDriver) Create(r volume.Request) volume.Response {
 	v.m.Lock()
 	defer v.m.Unlock()
 
-	log.Debugf("Create volume -> name: %s, %v", r.Name, r.Options)
+	resName, resOpts := resolveName(r.Name)
+	if resOpts != nil {
+		// Check to make sure there aren't options, otherwise override
+		if len(r.Options) == 0 {
+			r.Options = resOpts
+		}
+	}
+	log.Debugf("Create volume -> name: %s, %v", resName, r.Options)
 
-	dest := mountpoint(v.root, r.Name)
+	dest := mountpoint(v.root, resName)
 	if err := createDest(dest); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 
-	v.mountm.Create(r.Name, dest, r.Options)
-	//if v.mountm.GetOption(r.Name, ShareOpt) != "" && v.mountm.GetOptionAsBool(r.Name, CreateOpt) {
-	//	log.Debugf("Create volume -> name: %s, creating option found, creating: %s", r.Name, r.Options)
-	//
-	//}
+	v.mountm.Create(resName, dest, r.Options)
 	return volume.Response{}
 }
 
 func (v volumeDriver) Remove(r volume.Request) volume.Response {
-	log.Debugf("Entering Remove: name: %s, options %v", r.Name, r.Options)
+
+	resolvedName, _ := resolveName(r.Name)
+
+	log.Debugf("Entering Remove: name: %s, resolved-name: %s, options %v", r.Name, resolvedName, r.Options)
 	v.m.Lock()
 	defer v.m.Unlock()
 
-	if err := v.mountm.Delete(r.Name); err != nil {
+	if err := v.mountm.Delete(resolvedName); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 	return volume.Response{}
 }
 
 func (v volumeDriver) Path(r volume.Request) volume.Response {
-	log.Debugf("Host path for %s is at %s", r.Name, mountpoint(v.root, r.Name))
-	return volume.Response{Mountpoint: mountpoint(v.root, r.Name)}
+	resolvedName, _ := resolveName(r.Name)
+
+	log.Debugf("Host path for %s (%s) is at %s", r.Name, resolvedName, mountpoint(v.root, resolvedName))
+	return volume.Response{Mountpoint: mountpoint(v.root, resolvedName)}
 }
 
 func (v volumeDriver) Get(r volume.Request) volume.Response {
 	log.Debugf("Entering Get: %v", r)
 	v.m.Lock()
 	defer v.m.Unlock()
-	hostdir := mountpoint(v.root, r.Name)
+	resolvedName, _ := resolveName(r.Name)
 
-	if v.mountm.HasMount(r.Name) {
-		log.Debugf("Get: mount found for %s, host directory: %s", r.Name, hostdir)
-		return volume.Response{Volume: &volume.Volume{Name: r.Name, Mountpoint: hostdir}}
+	hostdir := mountpoint(v.root, resolvedName)
+
+	if v.mountm.HasMount(resolvedName) {
+		log.Debugf("Get: mount found for %s, host directory: %s", resolvedName, hostdir)
+		return volume.Response{Volume: &volume.Volume{Name: resolvedName, Mountpoint: hostdir}}
 	}
 	return volume.Response{}
 }
@@ -78,8 +88,8 @@ func (v volumeDriver) List(r volume.Request) volume.Response {
 func (v volumeDriver) Capabilities(r volume.Request) volume.Response {
 	log.Debugf("Entering Capabilities: %v", r)
 	return volume.Response{
-		Capabilities: volume.Capability {
-			Scope: "global",
+		Capabilities: volume.Capability{
+			Scope: "local",
 		},
 	}
 }
