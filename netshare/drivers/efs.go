@@ -6,6 +6,7 @@ import (
 	"github.com/docker/go-plugins-helpers/volume"
 	"os"
 	"strings"
+	"regexp"
 )
 
 const (
@@ -100,6 +101,9 @@ func (e efsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 }
 
 func (e efsDriver) fixSource(name, id string) string {
+	reg, _ := regexp.Compile("(fs-[0-9a-f]+)$")
+	name = reg.FindString(name)
+
 	if e.mountm.HasOption(name, ShareOpt) {
 		name = e.mountm.GetOption(name, ShareOpt)
 	}
