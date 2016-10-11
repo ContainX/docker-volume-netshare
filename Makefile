@@ -1,4 +1,4 @@
-VERSION = 0.31
+VERSION = 0.32
 GO_FMT = gofmt -s -w -l .
 GO_XC = goxc -os="linux" -bc="linux,amd64,arm" -tasks-="rmbin"
 
@@ -16,7 +16,7 @@ goxc:
 	$(shell echo '  "publish-github": {' >> $(GOXC_FILE))
 	$(shell echo '     "apikey": "$(GITHUB_APIKEY)",' >> $(GOXC_FILE))
 	$(shell echo '     "body": "",' >> $(GOXC_FILE))
-	$(shell echo '     "include": "*.zip,*.tar.gz,*.deb,docker-volume-netshare_$(VERSION)_linux_amd64-bin"' >> $(GOXC_FILE))
+	$(shell echo '     "include": "*.zip,*.tar.gz,*.deb,docker-volume-netshare_$(VERSION)_linux_amd64-bin,docker-volume-netshare_$(VERSION)_linux_arm-bin"' >> $(GOXC_FILE))
 	$(shell echo '  }\n } \n}' >> $(GOXC_FILE))
 	$(GO_XC)
 	cp build/$(VERSION)/linux_amd64/docker-volume-netshare build/$(VERSION)/docker-volume-netshare_$(VERSION)_linux_amd64-bin
