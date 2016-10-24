@@ -1,0 +1,24 @@
+[submodule "vendor/github.com/Sirupsen/logrus"]
+	path = vendor/github.com/Sirupsen/logrus
+	url = https://github.com/Sirupsen/logrus
+[submodule "vendor/github.com/dickeyxxx/netrc"]
+	path = vendor/github.com/dickeyxxx/netrc
+	url = https://github.com/dickeyxxx/netrc
+[submodule "vendor/github.com/docker/go-connections"]
+	path = vendor/github.com/docker/go-connections
+	url = https://github.com/docker/go-connections
+[submodule "vendor/github.com/docker/go-plugins-helpers"]
+	path = vendor/github.com/docker/go-plugins-helpers
+	url = https://github.com/docker/go-plugins-helpers
+[submodule "vendor/github.com/miekg/dns"]
+	path = vendor/github.com/miekg/dns
+	url = https://github.com/miekg/dns
+[submodule "vendor/github.com/spf13/cobra"]
+	path = vendor/github.com/spf13/cobra
+	url = https://github.com/spf13/cobra
+[submodule "vendor/github.com/spf13/pflag"]
+	path = vendor/github.com/spf13/pflag
+	url = https://github.com/spf13/pflag
+[submodule "vendor/golang.org/x/net"]
+	path = vendor/golang.org/x/net
+	url = https://go.googlesource.com/net

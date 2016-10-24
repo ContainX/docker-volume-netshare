@@ -228,7 +228,7 @@ func start(dt drivers.DriverType, driver volume.Driver) {
 		if addr == "" {
 			addr, _ = rootCmd.PersistentFlags().GetString(PortFlag)
 		}
-		fmt.Println(h.ServeTCP(dt.String(), addr))
+		fmt.Println(h.ServeTCP(dt.String(), addr, nil))
 	} else {
 		fmt.Println(h.ServeUnix("", dt.String()))
 	}
