@@ -2,11 +2,12 @@ package drivers
 
 import (
 	"fmt"
+	"os"
+	"regexp"
+	"strings"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
-	"os"
-	"strings"
-	"regexp"
 )
 
 const (
@@ -101,15 +102,14 @@ func (e efsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 }
 
 func (e efsDriver) fixSource(name, id string) string {
-	reg, _ := regexp.Compile("(fs-[0-9a-f]+)$")
-	name = reg.FindString(name)
-
 	if e.mountm.HasOption(name, ShareOpt) {
 		name = e.mountm.GetOption(name, ShareOpt)
 	}
 
 	v := strings.Split(name, "/")
-	uri := v[0]
+	reg, _ := regexp.Compile("(fs-[0-9a-f]+)$")
+	uri := reg.FindString(v[0])
+
 	if e.resolve {
 		uri = fmt.Sprintf(EfsTemplateURI, e.availzone, v[0], e.region)
 		if i, ok := e.dnscache[uri]; ok {
