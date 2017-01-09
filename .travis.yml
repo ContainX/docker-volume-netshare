@@ -7,6 +7,6 @@ script:
   - go build
 install:
   - go get github.com/stretchr/testify
-#  - go get -v ./...
+  - go get -v ./...
 env:
   - GO15VENDOREXPERIMENT=1

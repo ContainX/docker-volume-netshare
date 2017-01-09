@@ -230,7 +230,7 @@ func start(dt drivers.DriverType, driver volume.Driver) {
 		}
 		fmt.Println(h.ServeTCP(dt.String(), addr, nil))
 	} else {
-		fmt.Println(h.ServeUnix("", dt.String()))
+		fmt.Println(h.ServeUnix("", int(dt)))
 	}
 }
 

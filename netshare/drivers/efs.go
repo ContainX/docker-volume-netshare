@@ -2,12 +2,11 @@ package drivers
 
 import (
 	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"github.com/docker/go-plugins-helpers/volume"
 	"os"
 	"regexp"
 	"strings"
-
-	log "github.com/Sirupsen/logrus"
-	"github.com/docker/go-plugins-helpers/volume"
 )
 
 const (
