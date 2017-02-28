@@ -141,7 +141,7 @@ func (m *mountManager) Increment(name string) int {
 
 func (m *mountManager) Decrement(name string) int {
 	c, found := m.mounts[name]
-	if found {
+	if found && c.connections > 0 {
 		c.connections--
 	}
 	return 0
