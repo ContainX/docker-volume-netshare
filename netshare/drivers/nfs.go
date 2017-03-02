@@ -125,6 +125,7 @@ func (n nfsDriver) Unmount(r volume.UnmountRequest) volume.Response {
         } else {
                 if err := os.RemoveAll(hostdir); err != nil {
                       return volume.Response{Err: err.Error()}
+		}
         }
 
 	return volume.Response{}
