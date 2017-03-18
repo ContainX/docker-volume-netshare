@@ -60,6 +60,7 @@ func (n nfsDriver) Mount(r volume.MountRequest) volume.Response {
 		if err := run(fmt.Sprintf("grep -c %s /proc/mounts", hostdir)); err != nil {
 			log.Infof("Existing NFS volume not mounted, force remount.")
 		} else {
+			n.mountm.Increment(resolvedName)
 			return volume.Response{Mountpoint: hostdir}
 		}
 	}
@@ -74,10 +75,11 @@ func (n nfsDriver) Mount(r volume.MountRequest) volume.Response {
 		n.mountm.Create(resolvedName, hostdir, resOpts)
 	}
 
+	n.mountm.Add(resolvedName, hostdir)
+	
 	if err := n.mountVolume(resolvedName, source, hostdir, n.version); err != nil {
 		return volume.Response{Err: err.Error()}
 	}
-	n.mountm.Add(resolvedName, hostdir)
 
 	if n.mountm.GetOption(resolvedName, ShareOpt) != "" && n.mountm.GetOptionAsBool(resolvedName, CreateOpt) {
 		log.Infof("Mount: Share and Create options enabled - using %s as sub-dir mount", resolvedName)
