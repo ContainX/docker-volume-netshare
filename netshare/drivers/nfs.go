@@ -56,7 +56,8 @@ func (n nfsDriver) Mount(r volume.MountRequest) volume.Response {
 
 	if n.mountm.HasMount(resolvedName) && n.mountm.Count(resolvedName) > 0 {
 		log.Infof("Using existing NFS volume mount: %s", hostdir)
-		if err := run(fmt.Sprintf("mountpoint -q %s", hostdir)); err != nil {
+		n.mountm.Increment(resolvedName)
+		if err := run(fmt.Sprintf("grep -c %s /proc/mounts", hostdir)); err != nil {
 			log.Infof("Existing NFS volume not mounted, force remount.")
 		} else {
 			n.mountm.Increment(resolvedName)
@@ -120,9 +121,14 @@ func (n nfsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 
 	n.mountm.DeleteIfNotManaged(resolvedName)
 
-	if err := os.RemoveAll(hostdir); err != nil {
-		return volume.Response{Err: err.Error()}
-	}
+        // Check if directory is empty. This command will return "err" if empty
+        if err := run(fmt.Sprintf("ls -1 %s | grep .", hostdir)); err == nil {
+                log.Warnf("Directory %s not empty after unmount. Skipping RemoveAll call.", hostdir)
+        } else {
+                if err := os.RemoveAll(hostdir); err != nil {
+                      return volume.Response{Err: err.Error()}
+		}
+        }
 
 	return volume.Response{}
 }
