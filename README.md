@@ -115,6 +115,8 @@ See example:
        password  somepass
        domain    optional
        security  optional
+       fileMode  optional
+       dirMode   optional
 ```
 
 **2. Run the plugin**
@@ -146,7 +148,7 @@ options and other info can be eliminated when running a container.
 This will create a new volume via the Docker daemon which will call `Create` in netshare passing in the corresponding user, pass and domain info.
 
 ```
-  $ docker volume create -d cifs --name cifshost/share --opt username=user --opt password=pass --opt domain=domain --opt security=security
+  $ docker volume create -d cifs --name cifshost/share --opt username=user --opt password=pass --opt domain=domain --opt security=security --opt fileMode=0777 --opt dirMode=0777
 ```
 
 **3. Launch a container**
