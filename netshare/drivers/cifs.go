@@ -209,7 +209,11 @@ func (s cifsDriver) mountVolume(name, source, dest string, creds *CifsCreds) err
 		opts.WriteString(fmt.Sprintf("sec=%s,", security))
 	}
 
-	opts.WriteString("rw ")
+	opts.WriteString("rw,")
+	opts.WriteString("uid=1000,")
+	opts.WriteString("uid=50,")
+	opts.WriteString("forceuid,")
+	opts.WriteString("forcegid ")
 
 	opts.WriteString(fmt.Sprintf("%s %s", source, dest))
 	cmd := fmt.Sprintf("mount -t cifs -o %s", opts.String())
