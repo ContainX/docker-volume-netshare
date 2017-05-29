@@ -2,13 +2,13 @@ package netshare
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
 	"github.com/ContainX/docker-volume-netshare/netshare/drivers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/spf13/cobra"
+	"os"
+	"path/filepath"
+	"strconv"
 	"syscall"
 )
 
