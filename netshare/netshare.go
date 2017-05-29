@@ -5,16 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"github.com/dmaj/docker-volume-netshare/netshare/drivers"
-	log "github.com/Sirupsen/logrus"
-	"github.com/docker/go-plugins-helpers/volume"
-	"github.com/spf13/cobra"
-	"syscall"
-
 	"github.com/ContainX/docker-volume-netshare/netshare/drivers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/spf13/cobra"
+	"syscall"
 )
 
 const (
