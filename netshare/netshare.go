@@ -2,13 +2,15 @@ package netshare
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"syscall"
+
 	"github.com/ContainX/docker-volume-netshare/netshare/drivers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
-	"strconv"
 )
 
 const (
@@ -230,7 +232,7 @@ func start(dt drivers.DriverType, driver volume.Driver) {
 		}
 		fmt.Println(h.ServeTCP(dt.String(), addr, nil))
 	} else {
-		fmt.Println(h.ServeUnix(dt.String(), 0))
+		fmt.Println(h.ServeUnix(dt.String(), syscall.Getgid()))
 	}
 }
 

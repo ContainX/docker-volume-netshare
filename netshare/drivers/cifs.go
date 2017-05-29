@@ -67,15 +67,29 @@ func (c cifsDriver) Mount(r volume.MountRequest) volume.Response {
 	c.m.Lock()
 	defer c.m.Unlock()
 	hostdir := mountpoint(c.root, r.Name)
-	source := c.fixSource(r.Name, r.ID)
+	source := c.fixSource(r.Name)
 	host := c.parseHost(r.Name)
 
+	resolvedName, resOpts := resolveName(r.Name)
+
 	log.Infof("Mount: %s, ID: %s", r.Name, r.ID)
+
+	// Support adhoc mounts (outside of docker volume create)
+	// need to adjust source for ShareOpt
+	if resOpts != nil {
+		if share, found := resOpts[ShareOpt]; found {
+			source = c.fixSource(share)
+		}
+	}
 
 	if c.mountm.HasMount(r.Name) && c.mountm.Count(r.Name) > 0 {
 		log.Infof("Using existing CIFS volume mount: %s", hostdir)
 		c.mountm.Increment(r.Name)
-		return volume.Response{Mountpoint: hostdir}
+		if err := run(fmt.Sprintf("mountpoint -q %s", hostdir)); err != nil {
+			log.Infof("Existing CIFS volume not mounted, force remount.")
+		} else {
+			return volume.Response{Mountpoint: hostdir}
+		}
 	}
 
 	log.Infof("Mounting CIFS volume %s on %s", source, hostdir)
@@ -88,6 +102,15 @@ func (c cifsDriver) Mount(r volume.MountRequest) volume.Response {
 		return volume.Response{Err: err.Error()}
 	}
 	c.mountm.Add(r.Name, hostdir)
+
+	if c.mountm.GetOption(resolvedName, ShareOpt) != "" && c.mountm.GetOptionAsBool(resolvedName, CreateOpt) {
+		log.Infof("Mount: Share and Create options enabled - using %s as sub-dir mount", resolvedName)
+		datavol := filepath.Join(hostdir, resolvedName)
+		if err := createDest(filepath.Join(hostdir, resolvedName)); err != nil {
+			return volume.Response{Err: err.Error()}
+		}
+		hostdir = datavol
+	}
 	return volume.Response{Mountpoint: hostdir}
 }
 
@@ -95,7 +118,7 @@ func (c cifsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	c.m.Lock()
 	defer c.m.Unlock()
 	hostdir := mountpoint(c.root, r.Name)
-	source := c.fixSource(r.Name, r.ID)
+	source := c.fixSource(r.Name)
 
 	if c.mountm.HasMount(r.Name) {
 		if c.mountm.Count(r.Name) > 1 {
@@ -121,7 +144,7 @@ func (c cifsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	return volume.Response{}
 }
 
-func (c cifsDriver) fixSource(name, id string) string {
+func (c cifsDriver) fixSource(name string) string {
 	if c.mountm.HasOption(name, ShareOpt) {
 		return "//" + c.mountm.GetOption(name, ShareOpt)
 	}
