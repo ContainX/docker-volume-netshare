@@ -5,6 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"github.com/dmaj/docker-volume-netshare/netshare/drivers"
+	log "github.com/Sirupsen/logrus"
+	"github.com/docker/go-plugins-helpers/volume"
+	"github.com/spf13/cobra"
 	"syscall"
 
 	"github.com/ContainX/docker-volume-netshare/netshare/drivers"
@@ -14,36 +18,40 @@ import (
 )
 
 const (
-	UsernameFlag   = "username"
-	PasswordFlag   = "password"
-	DomainFlag     = "domain"
-	SecurityFlag   = "security"
-	VersionFlag    = "version"
-	OptionsFlag    = "options"
-	BasedirFlag    = "basedir"
-	VerboseFlag    = "verbose"
-	AvailZoneFlag  = "az"
-	NoResolveFlag  = "noresolve"
-	NetRCFlag      = "netrc"
-	TCPFlag        = "tcp"
-	PortFlag       = "port"
-	NameServerFlag = "nameserver"
-	NameFlag       = "name"
-	SecretFlag     = "secret"
-	ContextFlag    = "context"
-	CephMount      = "sorcemount"
-	CephPort       = "port"
-	CephOpts       = "options"
-	ServerMount    = "servermount"
-	EnvSambaUser   = "NETSHARE_CIFS_USERNAME"
-	EnvSambaPass   = "NETSHARE_CIFS_PASSWORD"
-	EnvSambaWG     = "NETSHARE_CIFS_DOMAIN"
-	EnvSambaSec    = "NETSHARE_CIFS_SECURITY"
-	EnvNfsVers     = "NETSHARE_NFS_VERSION"
-	EnvTCP         = "NETSHARE_TCP_ENABLED"
-	EnvTCPAddr     = "NETSHARE_TCP_ADDR"
-	PluginAlias    = "netshare"
-	NetshareHelp   = `
+	UsernameFlag     = "username"
+	PasswordFlag     = "password"
+	DomainFlag       = "domain"
+	SecurityFlag     = "security"
+	FileModeFlag     = "fileMode"
+	DirModeFlag      = "dirMode"
+	VersionFlag      = "version"
+	OptionsFlag      = "options"
+	BasedirFlag      = "basedir"
+	VerboseFlag      = "verbose"
+	AvailZoneFlag    = "az"
+	NoResolveFlag    = "noresolve"
+	NetRCFlag        = "netrc"
+	TCPFlag          = "tcp"
+	PortFlag         = "port"
+	NameServerFlag   = "nameserver"
+	NameFlag         = "name"
+	SecretFlag       = "secret"
+	ContextFlag      = "context"
+	CephMount        = "sorcemount"
+	CephPort         = "port"
+	CephOpts         = "options"
+	ServerMount      = "servermount"
+	EnvSambaUser     = "NETSHARE_CIFS_USERNAME"
+	EnvSambaPass     = "NETSHARE_CIFS_PASSWORD"
+	EnvSambaWG       = "NETSHARE_CIFS_DOMAIN"
+	EnvSambaSec      = "NETSHARE_CIFS_SECURITY"
+	EnvSambaFileMode = "NETSHARE_CIFS_FILEMODE"
+	EnvSambaDirMode  = "NETSHARE_CIFS_DIRMODE"
+	EnvNfsVers       = "NETSHARE_NFS_VERSION"
+	EnvTCP           = "NETSHARE_TCP_ENABLED"
+	EnvTCPAddr       = "NETSHARE_TCP_ADDR"
+	PluginAlias      = "netshare"
+	NetshareHelp     = `
 	docker-volume-netshare (NFS V3/4, AWS EFS and CIFS Volume Driver Plugin)
 
 Provides docker volume support for NFS v3 and 4, EFS as well as CIFS.  This plugin can be run multiple times to
@@ -114,6 +122,8 @@ func setupFlags() {
 	cifsCmd.Flags().StringP(PasswordFlag, "p", "", "Password to use for mounts.  Can also set environment NETSHARE_CIFS_PASSWORD")
 	cifsCmd.Flags().StringP(DomainFlag, "d", "", "Domain to use for mounts.  Can also set environment NETSHARE_CIFS_DOMAIN")
 	cifsCmd.Flags().StringP(SecurityFlag, "s", "", "Security mode to use for mounts (mount.cifs's sec option). Can also set environment NETSHARE_CIFS_SECURITY.")
+	cifsCmd.Flags().StringP(FileModeFlag, "f", "", "Setting access rights for files (mount.cifs's file_mode option). Can also set environment NETSHARE_CIFS_FILEMODE.")
+	cifsCmd.Flags().StringP(DirModeFlag, "z", "", "Setting access rights for folders (mount.cifs's dir_mode option). Can also set environment NETSHARE_CIFS_DIRMODE.")
 	cifsCmd.Flags().StringP(NetRCFlag, "", os.Getenv("HOME"), "The default .netrc location.  Default is the user.home directory")
 	cifsCmd.Flags().StringP(OptionsFlag, "o", "", "Options passed to Cifs mounts (ex: nounix,uid=433)")
 
@@ -192,10 +202,12 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	pass := typeOrEnv(cmd, PasswordFlag, EnvSambaPass)
 	domain := typeOrEnv(cmd, DomainFlag, EnvSambaWG)
 	security := typeOrEnv(cmd, SecurityFlag, EnvSambaSec)
+	fileMode := typeOrEnv(cmd, FileModeFlag, EnvSambaFileMode)
+	dirMode := typeOrEnv(cmd, DirModeFlag, EnvSambaDirMode)
 	netrc, _ := cmd.Flags().GetString(NetRCFlag)
 	options, _ := cmd.Flags().GetString(OptionsFlag)
 
-	creds := drivers.NewCifsCredentials(user, pass, domain, security)
+	creds := drivers.NewCifsCredentials(user, pass, domain, security, fileMode, dirMode)
 
 	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), creds, netrc, options)
 	if len(user) > 0 {
