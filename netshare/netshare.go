@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-
 	"github.com/dmaj/docker-volume-netshare/netshare/drivers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/spf13/cobra"
+	"syscall"
 )
 
 const (
@@ -239,7 +239,7 @@ func start(dt drivers.DriverType, driver volume.Driver) {
 		}
 		fmt.Println(h.ServeTCP(dt.String(), addr, nil))
 	} else {
-		fmt.Println(h.ServeUnix(dt.String(), int(dt)))
+		fmt.Println(h.ServeUnix(dt.String(), syscall.Getgid()))
 	}
 }
 
