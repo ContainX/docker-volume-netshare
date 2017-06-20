@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	EfsTemplateURI = "%s.%s.efs.%s.amazonaws.com"
+	EfsTemplateURI = "%s.efs.%s.amazonaws.com"
 )
 
 type efsDriver struct {
@@ -22,7 +22,7 @@ type efsDriver struct {
 	dnscache  map[string]string
 }
 
-func NewEFSDriver(root, az, nameserver string, resolve bool) efsDriver {
+func NewEFSDriver(root, nameserver string, resolve bool) efsDriver {
 
 	d := efsDriver{
 		volumeDriver: newVolumeDriver(root),
@@ -39,9 +39,6 @@ func NewEFSDriver(root, az, nameserver string, resolve bool) efsDriver {
 		os.Exit(1)
 	}
 	d.region = md.Region
-	if az == "" {
-		d.availzone = md.AvailZone
-	}
 	return d
 }
 
@@ -110,7 +107,7 @@ func (e efsDriver) fixSource(name, id string) string {
 	uri := reg.FindString(v[0])
 
 	if e.resolve {
-		uri = fmt.Sprintf(EfsTemplateURI, e.availzone, v[0], e.region)
+		uri = fmt.Sprintf(EfsTemplateURI, v[0], e.region)
 		if i, ok := e.dnscache[uri]; ok {
 			uri = i
 		}
