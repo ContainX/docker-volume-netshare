@@ -15,7 +15,6 @@ const (
 
 type efsDriver struct {
 	volumeDriver
-	availzone string
 	resolve   bool
 	region    string
 	resolver  *Resolver
