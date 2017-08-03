@@ -184,11 +184,10 @@ func execNFS(cmd *cobra.Command, args []string) {
 }
 
 func execEFS(cmd *cobra.Command, args []string) {
-	az, _ := cmd.Flags().GetString(AvailZoneFlag)
 	resolve, _ := cmd.Flags().GetBool(NoResolveFlag)
 	ns, _ := cmd.Flags().GetString(NameServerFlag)
-	d := drivers.NewEFSDriver(rootForType(drivers.EFS), az, ns, !resolve)
-	startOutput(fmt.Sprintf("EFS :: availability-zone: %s, resolve: %v, ns: %s", az, resolve, ns))
+	d := drivers.NewEFSDriver(rootForType(drivers.EFS), ns, !resolve)
+	startOutput(fmt.Sprintf("EFS :: resolve: %v, ns: %s", resolve, ns))
 	start(drivers.EFS, d)
 }
 
