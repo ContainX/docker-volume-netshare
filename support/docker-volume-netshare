@@ -13,21 +13,21 @@ set -e
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
-BASE=$(basename $0)
+APP="docker-volume-netshare"
 
-# modify these in /etc/default/$BASE (/etc/default/dkv-netshare)
-DKV_NETSHARE=/usr/bin/$BASE
+# modify these in /etc/default/$APP (/etc/default/dkv-netshare)
+DKV_NETSHARE=/usr/bin/$APP
 # This is the pid file created/managed by start-stop-daemon
-DKV_NETSHARE_SSD_PIDFILE=/var/run/$BASE-ssd.pid
-DKV_NETSHARE_LOGFILE=/var/log/$BASE.log
+DKV_NETSHARE_SSD_PIDFILE=/var/run/$APP-ssd.pid
+DKV_NETSHARE_LOGFILE=/var/log/$APP.log
 DKV_NETSHARE_OPTS=
 DKV_NETSHARE_DESC="Docker-Volume-Netshare"
 
 # Get lsb functions
 . /lib/lsb/init-functions
 
-if [ -f /etc/default/$BASE ]; then
-	. /etc/default/$BASE
+if [ -f /etc/default/$APP ]; then
+	. /etc/default/$APP
 fi
 
 # Check docker is present
@@ -50,8 +50,8 @@ case "$1" in
 		touch "$DKV_NETSHARE_LOGFILE"
 		chgrp docker "$DKV_NETSHARE_LOGFILE"
 
-		
-		log_begin_msg "Starting $DKV_NETSHARE_DESC: $BASE"
+
+		log_begin_msg "Starting $DKV_NETSHARE_DESC: $APP"
 		start-stop-daemon --start --background \
 			--no-close \
 			--exec "$DKV_NETSHARE" \
@@ -65,7 +65,7 @@ case "$1" in
 
 	stop)
 		fail_unless_root
-		log_begin_msg "Stopping $DKV_NETSHARE_DESC: $BASE"
+		log_begin_msg "Stopping $DKV_NETSHARE_DESC: $APP"
 		start-stop-daemon --stop --pidfile "$DKV_NETSHARE_SSD_PIDFILE"
 		log_end_msg $?
 		;;
