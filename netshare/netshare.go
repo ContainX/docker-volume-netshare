@@ -2,51 +2,48 @@ package netshare
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"github.com/ContainX/docker-volume-netshare/netshare/drivers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
-	"strconv"
-	"syscall"
 )
 
 const (
-	UsernameFlag     = "username"
-	PasswordFlag     = "password"
-	DomainFlag       = "domain"
-	SecurityFlag     = "security"
-	FileModeFlag     = "fileMode"
-	DirModeFlag      = "dirMode"
-	VersionFlag      = "version"
-	OptionsFlag      = "options"
-	BasedirFlag      = "basedir"
-	VerboseFlag      = "verbose"
-	AvailZoneFlag    = "az"
-	NoResolveFlag    = "noresolve"
-	NetRCFlag        = "netrc"
-	TCPFlag          = "tcp"
-	PortFlag         = "port"
-	NameServerFlag   = "nameserver"
-	NameFlag         = "name"
-	SecretFlag       = "secret"
-	ContextFlag      = "context"
-	CephMount        = "sorcemount"
-	CephPort         = "port"
-	CephOpts         = "options"
-	ServerMount      = "servermount"
-	EnvSambaUser     = "NETSHARE_CIFS_USERNAME"
-	EnvSambaPass     = "NETSHARE_CIFS_PASSWORD"
-	EnvSambaWG       = "NETSHARE_CIFS_DOMAIN"
-	EnvSambaSec      = "NETSHARE_CIFS_SECURITY"
-	EnvSambaFileMode = "NETSHARE_CIFS_FILEMODE"
-	EnvSambaDirMode  = "NETSHARE_CIFS_DIRMODE"
-	EnvNfsVers       = "NETSHARE_NFS_VERSION"
-	EnvTCP           = "NETSHARE_TCP_ENABLED"
-	EnvTCPAddr       = "NETSHARE_TCP_ADDR"
-	PluginAlias      = "netshare"
-	NetshareHelp     = `
+	UsernameFlag    = "username"
+	PasswordFlag    = "password"
+	DomainFlag      = "domain"
+	SecurityFlag    = "security"
+	VersionFlag     = "version"
+	OptionsFlag     = "options"
+	BasedirFlag     = "basedir"
+	VerboseFlag     = "verbose"
+	AvailZoneFlag   = "az"
+	NoResolveFlag   = "noresolve"
+	NetRCFlag       = "netrc"
+	TCPFlag         = "tcp"
+	PortFlag        = "port"
+	NameServerFlag  = "nameserver"
+	NameFlag        = "name"
+	SecretFlag      = "secret"
+	ContextFlag     = "context"
+	CephMount       = "sorcemount"
+	CephPort        = "port"
+	CephOpts        = "options"
+	ServerMount     = "servermount"
+	EnvSambaUser    = "NETSHARE_CIFS_USERNAME"
+	EnvSambaPass    = "NETSHARE_CIFS_PASSWORD"
+	EnvSambaWG      = "NETSHARE_CIFS_DOMAIN"
+	EnvSambaSec     = "NETSHARE_CIFS_SECURITY"
+	EnvNfsVers      = "NETSHARE_NFS_VERSION"
+	EnvTCP          = "NETSHARE_TCP_ENABLED"
+	EnvTCPAddr      = "NETSHARE_TCP_ADDR"
+	InterfaceSocket = "NETSHARE_INTERFACE_SOCKET"
+	PluginAlias     = "netshare"
+	NetshareHelp    = `
 	docker-volume-netshare (NFS V3/4, AWS EFS and CIFS Volume Driver Plugin)
 
 Provides docker volume support for NFS v3 and 4, EFS as well as CIFS.  This plugin can be run multiple times to
@@ -238,7 +235,11 @@ func start(dt drivers.DriverType, driver volume.Driver) {
 		}
 		fmt.Println(h.ServeTCP(dt.String(), addr, nil))
 	} else {
-		fmt.Println(h.ServeUnix(dt.String(), syscall.Getgid()))
+		socketName := os.Getenv(InterfaceSocket)
+		if socketName == "" {
+			socketName = dt.String()
+		}
+		fmt.Println(h.ServeUnix(socketName, int(dt)))
 	}
 }
 
