@@ -114,6 +114,8 @@ func setupFlags() {
 	cifsCmd.Flags().StringP(PasswordFlag, "p", "", "Password to use for mounts.  Can also set environment NETSHARE_CIFS_PASSWORD")
 	cifsCmd.Flags().StringP(DomainFlag, "d", "", "Domain to use for mounts.  Can also set environment NETSHARE_CIFS_DOMAIN")
 	cifsCmd.Flags().StringP(SecurityFlag, "s", "", "Security mode to use for mounts (mount.cifs's sec option). Can also set environment NETSHARE_CIFS_SECURITY.")
+	cifsCmd.Flags().StringP(FileModeFlag, "f", "", "Setting access rights for files (mount.cifs's file_mode option). Can also set environment NETSHARE_CIFS_FILEMODE.")
+	cifsCmd.Flags().StringP(DirModeFlag, "z", "", "Setting access rights for folders (mount.cifs's dir_mode option). Can also set environment NETSHARE_CIFS_DIRMODE.")
 	cifsCmd.Flags().StringP(NetRCFlag, "", os.Getenv("HOME"), "The default .netrc location.  Default is the user.home directory")
 	cifsCmd.Flags().StringP(OptionsFlag, "o", "", "Options passed to Cifs mounts (ex: nounix,uid=433)")
 
@@ -179,11 +181,10 @@ func execNFS(cmd *cobra.Command, args []string) {
 }
 
 func execEFS(cmd *cobra.Command, args []string) {
-	az, _ := cmd.Flags().GetString(AvailZoneFlag)
 	resolve, _ := cmd.Flags().GetBool(NoResolveFlag)
 	ns, _ := cmd.Flags().GetString(NameServerFlag)
-	d := drivers.NewEFSDriver(rootForType(drivers.EFS), az, ns, !resolve)
-	startOutput(fmt.Sprintf("EFS :: availability-zone: %s, resolve: %v, ns: %s", az, resolve, ns))
+	d := drivers.NewEFSDriver(rootForType(drivers.EFS), ns, !resolve)
+	startOutput(fmt.Sprintf("EFS :: resolve: %v, ns: %s", resolve, ns))
 	start(drivers.EFS, d)
 }
 
@@ -192,10 +193,12 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	pass := typeOrEnv(cmd, PasswordFlag, EnvSambaPass)
 	domain := typeOrEnv(cmd, DomainFlag, EnvSambaWG)
 	security := typeOrEnv(cmd, SecurityFlag, EnvSambaSec)
+	fileMode := typeOrEnv(cmd, FileModeFlag, EnvSambaFileMode)
+	dirMode := typeOrEnv(cmd, DirModeFlag, EnvSambaDirMode)
 	netrc, _ := cmd.Flags().GetString(NetRCFlag)
 	options, _ := cmd.Flags().GetString(OptionsFlag)
 
-	creds := drivers.NewCifsCredentials(user, pass, domain, security)
+	creds := drivers.NewCifsCredentials(user, pass, domain, security, fileMode, dirMode)
 
 	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), creds, netrc, options)
 	if len(user) > 0 {

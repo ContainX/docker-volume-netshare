@@ -23,10 +23,6 @@ type cephDriver struct {
 	cephopts   map[string]string
 }
 
-//var (
-//	EmptyMap = map[string]string{}
-//)
-
 func NewCephDriver(root string, username string, password string, context string, cephmount string, cephport string, localmount string, cephopts string) cephDriver {
 	d := cephDriver{
 		volumeDriver: newVolumeDriver(root),
