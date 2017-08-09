@@ -45,6 +45,7 @@ const (
 	EnvNfsVers       = "NETSHARE_NFS_VERSION"
 	EnvTCP           = "NETSHARE_TCP_ENABLED"
 	EnvTCPAddr       = "NETSHARE_TCP_ADDR"
+	EnvSocketName    = "NETSHARE_SOCKET_NAME"
 	PluginAlias      = "netshare"
 	NetshareHelp     = `
 	docker-volume-netshare (NFS V3/4, AWS EFS and CIFS Volume Driver Plugin)
@@ -238,7 +239,11 @@ func start(dt drivers.DriverType, driver volume.Driver) {
 		}
 		fmt.Println(h.ServeTCP(dt.String(), addr, nil))
 	} else {
-		fmt.Println(h.ServeUnix(dt.String(), syscall.Getgid()))
+		socketName := os.Getenv(EnvSocketName)
+		if socketName == "" {
+			socketName = dt.String()
+		}
+		fmt.Println(h.ServeUnix(socketName, syscall.Getgid()))
 	}
 }
 
