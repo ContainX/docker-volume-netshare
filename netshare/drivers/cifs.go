@@ -73,7 +73,7 @@ func parseNetRC(path string) *netrc.Netrc {
 }
 
 // Mount do the mounting
-func (c CifsDriver) Mount(r volume.MountRequest) volume.Response {
+func (c CifsDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	hostdir := mountpoint(c.root, r.Name)
@@ -98,18 +98,18 @@ func (c CifsDriver) Mount(r volume.MountRequest) volume.Response {
 		if err := run(fmt.Sprintf("mountpoint -q %s", hostdir)); err != nil {
 			log.Infof("Existing CIFS volume not mounted, force remount.")
 		} else {
-			return volume.Response{Mountpoint: hostdir}
+			return &volume.MountResponse{Mountpoint: hostdir}, nil
 		}
 	}
 
 	log.Infof("Mounting CIFS volume %s on %s", source, hostdir)
 
 	if err := createDest(hostdir); err != nil {
-		return volume.Response{Err: err.Error()}
+		return nil, err
 	}
 
 	if err := c.mountVolume(r.Name, source, hostdir, c.getCreds(host)); err != nil {
-		return volume.Response{Err: err.Error()}
+		return nil, err
 	}
 	c.mountm.Add(r.Name, hostdir)
 
@@ -117,15 +117,15 @@ func (c CifsDriver) Mount(r volume.MountRequest) volume.Response {
 		log.Infof("Mount: Share and Create options enabled - using %s as sub-dir mount", resolvedName)
 		datavol := filepath.Join(hostdir, resolvedName)
 		if err := createDest(filepath.Join(hostdir, resolvedName)); err != nil {
-			return volume.Response{Err: err.Error()}
+			return nil, err
 		}
 		hostdir = datavol
 	}
-	return volume.Response{Mountpoint: hostdir}
+	return &volume.MountResponse{Mountpoint: hostdir}, nil
 }
 
 // Unmount do the unmounting
-func (c CifsDriver) Unmount(r volume.UnmountRequest) volume.Response {
+func (c CifsDriver) Unmount(r *volume.UnmountRequest) error {
 	c.m.Lock()
 	defer c.m.Unlock()
 	hostdir := mountpoint(c.root, r.Name)
@@ -135,7 +135,7 @@ func (c CifsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 		if c.mountm.Count(r.Name) > 1 {
 			log.Infof("Skipping unmount for %s - in use by other containers", r.Name)
 			c.mountm.Decrement(r.Name)
-			return volume.Response{}
+			return nil
 		}
 		c.mountm.Decrement(r.Name)
 	}
@@ -143,7 +143,7 @@ func (c CifsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	log.Infof("Unmounting volume %s from %s", source, hostdir)
 
 	if err := run(fmt.Sprintf("umount %s", hostdir)); err != nil {
-		return volume.Response{Err: err.Error()}
+		return err
 	}
 
 	c.mountm.DeleteIfNotManaged(r.Name)
@@ -157,7 +157,7 @@ func (c CifsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	//  	return volume.Response{Err: err.Error()}
 	// }
 
-	return volume.Response{}
+	return nil
 }
 
 func (c CifsDriver) fixSource(name string) string {
