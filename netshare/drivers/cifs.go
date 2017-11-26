@@ -217,9 +217,10 @@ func (c CifsDriver) mountVolume(name, source, dest string, creds *CifsCreds) err
 	}
 
 	if user != "" {
-		opts.WriteString(fmt.Sprintf("username=%s,", user))
+		// escape single quotes in password character as it will be quoted in command line
+		opts.WriteString(fmt.Sprintf("username='%s',", strings.Replace(user, "'", "\\'", -1)))
 		if pass != "" {
-			opts.WriteString(fmt.Sprintf("password=%s,", pass))
+			opts.WriteString(fmt.Sprintf("password='%s',", strings.Replace(pass, "'", "\\'", -1)))
 		}
 	} else {
 		opts.WriteString("guest,")
@@ -245,7 +246,7 @@ func (c CifsDriver) mountVolume(name, source, dest string, creds *CifsCreds) err
 
 	opts.WriteString(fmt.Sprintf("%s %s", source, dest))
 	cmd := fmt.Sprintf("mount -t cifs -o %s", opts.String())
-	log.Debugf("Executing: %s\n", strings.Replace(cmd, "password="+pass, "password=****", 1))
+	log.Debugf("Executing: %s\n", strings.Replace(cmd, "password='"+pass+"'", "password='****'", 1))
 	return run(cmd)
 }
 
