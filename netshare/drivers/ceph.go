@@ -2,10 +2,11 @@ package drivers
 
 import (
 	"fmt"
-	log "github.com/Sirupsen/logrus"
-	"github.com/docker/go-plugins-helpers/volume"
 	"os"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/docker/go-plugins-helpers/volume"
 )
 
 const (
@@ -41,7 +42,7 @@ func NewCephDriver(root string, username string, password string, context string
 	return d
 }
 
-func (n cephDriver) Mount(r volume.MountRequest) volume.Response {
+func (n cephDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error) {
 	log.Debugf("Entering Mount: %v", r)
 	n.m.Lock()
 	defer n.m.Unlock()
@@ -50,22 +51,22 @@ func (n cephDriver) Mount(r volume.MountRequest) volume.Response {
 	if n.mountm.HasMount(r.Name) && n.mountm.Count(r.Name) > 0 {
 		log.Infof("Using existing CEPH volume mount: %s", hostdir)
 		n.mountm.Increment(r.Name)
-		return volume.Response{Mountpoint: hostdir}
+		return &volume.MountResponse{Mountpoint: hostdir}, nil
 	}
 
 	log.Infof("Mounting CEPH volume %s on %s", source, hostdir)
 	if err := createDest(hostdir); err != nil {
-		return volume.Response{Err: err.Error()}
+		return nil, err
 	}
 
 	if err := n.mountVolume(r.Name, source, hostdir); err != nil {
-		return volume.Response{Err: err.Error()}
+		return nil, err
 	}
 	n.mountm.Add(r.Name, hostdir)
-	return volume.Response{Mountpoint: hostdir}
+	return &volume.MountResponse{Mountpoint: hostdir}, nil
 }
 
-func (n cephDriver) Unmount(r volume.UnmountRequest) volume.Response {
+func (n cephDriver) Unmount(r *volume.UnmountRequest) error {
 	log.Debugf("Entering Unmount: %v", r)
 
 	n.m.Lock()
@@ -76,7 +77,7 @@ func (n cephDriver) Unmount(r volume.UnmountRequest) volume.Response {
 		if n.mountm.Count(r.Name) > 1 {
 			log.Printf("Skipping unmount for %s - in use by other containers", r.Name)
 			n.mountm.Decrement(r.Name)
-			return volume.Response{}
+			return nil
 		}
 		n.mountm.Decrement(r.Name)
 	}
@@ -84,16 +85,16 @@ func (n cephDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	log.Infof("Unmounting volume name %s from %s", r.Name, hostdir)
 
 	if err := run(fmt.Sprintf("umount %s", hostdir)); err != nil {
-		return volume.Response{Err: err.Error()}
+		return err
 	}
 
 	n.mountm.DeleteIfNotManaged(r.Name)
 
 	if err := os.RemoveAll(hostdir); err != nil {
-		return volume.Response{Err: err.Error()}
+		return err
 	}
 
-	return volume.Response{}
+	return nil
 }
 
 func (n cephDriver) fixSource(name, id string) string {

@@ -2,10 +2,11 @@ package drivers
 
 import (
 	"fmt"
-	log "github.com/Sirupsen/logrus"
-	"github.com/docker/go-plugins-helpers/volume"
 	"os"
 	"path/filepath"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/docker/go-plugins-helpers/volume"
 )
 
 const (
@@ -36,7 +37,7 @@ func NewNFSDriver(root string, version int, nfsopts string) nfsDriver {
 	return d
 }
 
-func (n nfsDriver) Mount(r volume.MountRequest) volume.Response {
+func (n nfsDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error) {
 	log.Debugf("Entering Mount: %v", r)
 	n.m.Lock()
 	defer n.m.Unlock()
@@ -61,14 +62,14 @@ func (n nfsDriver) Mount(r volume.MountRequest) volume.Response {
 			log.Infof("Existing NFS volume not mounted, force remount.")
 		} else {
 			n.mountm.Increment(resolvedName)
-			return volume.Response{Mountpoint: hostdir}
+			return &volume.MountResponse{Mountpoint: hostdir}, nil
 		}
 	}
 
 	log.Infof("Mounting NFS volume %s on %s", source, hostdir)
 
 	if err := createDest(hostdir); err != nil {
-		return volume.Response{Err: err.Error()}
+		return nil, err
 	}
 
 	if n.mountm.HasMount(resolvedName) == false {
@@ -78,22 +79,22 @@ func (n nfsDriver) Mount(r volume.MountRequest) volume.Response {
 	n.mountm.Add(resolvedName, hostdir)
 
 	if err := n.mountVolume(resolvedName, source, hostdir, n.version); err != nil {
-		return volume.Response{Err: err.Error()}
+		return nil, err
 	}
 
 	if n.mountm.GetOption(resolvedName, ShareOpt) != "" && n.mountm.GetOptionAsBool(resolvedName, CreateOpt) {
 		log.Infof("Mount: Share and Create options enabled - using %s as sub-dir mount", resolvedName)
 		datavol := filepath.Join(hostdir, resolvedName)
 		if err := createDest(filepath.Join(hostdir, resolvedName)); err != nil {
-			return volume.Response{Err: err.Error()}
+			return nil, err
 		}
 		hostdir = datavol
 	}
 
-	return volume.Response{Mountpoint: hostdir}
+	return &volume.MountResponse{Mountpoint: hostdir}, nil
 }
 
-func (n nfsDriver) Unmount(r volume.UnmountRequest) volume.Response {
+func (n nfsDriver) Unmount(r *volume.UnmountRequest) error {
 	log.Debugf("Entering Unmount: %v", r)
 
 	n.m.Lock()
@@ -107,7 +108,7 @@ func (n nfsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 		if n.mountm.Count(resolvedName) > 1 {
 			log.Printf("Skipping unmount for %s - in use by other containers", resolvedName)
 			n.mountm.Decrement(resolvedName)
-			return volume.Response{}
+			return nil
 		}
 		n.mountm.Decrement(resolvedName)
 	}
@@ -116,7 +117,7 @@ func (n nfsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 
 	if err := run(fmt.Sprintf("umount %s", hostdir)); err != nil {
 		log.Errorf("Error unmounting volume from host: %s", err.Error())
-		return volume.Response{Err: err.Error()}
+		return err
 	}
 
 	n.mountm.DeleteIfNotManaged(resolvedName)
@@ -126,11 +127,11 @@ func (n nfsDriver) Unmount(r volume.UnmountRequest) volume.Response {
 		log.Warnf("Directory %s not empty after unmount. Skipping RemoveAll call.", hostdir)
 	} else {
 		if err := os.RemoveAll(hostdir); err != nil {
-			return volume.Response{Err: err.Error()}
+			return err
 		}
 	}
 
-	return volume.Response{}
+	return nil
 }
 
 func (n nfsDriver) fixSource(name string) string {

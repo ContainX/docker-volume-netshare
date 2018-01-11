@@ -2,14 +2,15 @@ package netshare
 
 import (
 	"fmt"
-	"github.com/ContainX/docker-volume-netshare/netshare/drivers"
-	log "github.com/Sirupsen/logrus"
-	"github.com/docker/go-plugins-helpers/volume"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"strconv"
 	"syscall"
+
+	"github.com/ContainX/docker-volume-netshare/netshare/drivers"
+	log "github.com/Sirupsen/logrus"
+	"github.com/docker/go-plugins-helpers/volume"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -237,7 +238,8 @@ func start(dt drivers.DriverType, driver volume.Driver) {
 		if addr == "" {
 			addr, _ = rootCmd.PersistentFlags().GetString(PortFlag)
 		}
-		fmt.Println(h.ServeTCP(dt.String(), addr, nil))
+		// TODO: if platform == windows, use WindowsDefaultDaemonRootDir()
+		fmt.Println(h.ServeTCP(dt.String(), addr, "", nil))
 	} else {
 		socketName := os.Getenv(EnvSocketName)
 		if socketName == "" {
