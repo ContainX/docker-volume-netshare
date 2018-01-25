@@ -1,9 +1,10 @@
 package drivers
 
 import (
+	"sync"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
-	"sync"
 )
 
 type volumeDriver struct {
@@ -20,7 +21,7 @@ func newVolumeDriver(root string) volumeDriver {
 	}
 }
 
-func (v volumeDriver) Create(r volume.Request) volume.Response {
+func (v volumeDriver) Create(r *volume.CreateRequest) error {
 	log.Debugf("Entering Create: name: %s, options %v", r.Name, r.Options)
 
 	v.m.Lock()
@@ -37,35 +38,35 @@ func (v volumeDriver) Create(r volume.Request) volume.Response {
 
 	dest := mountpoint(v.root, resName)
 	if err := createDest(dest); err != nil {
-		return volume.Response{Err: err.Error()}
+		return err
 	}
 
 	v.mountm.Create(resName, dest, r.Options)
-	return volume.Response{}
+	return nil
 }
 
-func (v volumeDriver) Remove(r volume.Request) volume.Response {
+func (v volumeDriver) Remove(r *volume.RemoveRequest) error {
 
 	resolvedName, _ := resolveName(r.Name)
 
-	log.Debugf("Entering Remove: name: %s, resolved-name: %s, options %v", r.Name, resolvedName, r.Options)
+	log.Debugf("Entering Remove: name: %s, resolved-name: %s", r.Name, resolvedName)
 	v.m.Lock()
 	defer v.m.Unlock()
 
 	if err := v.mountm.Delete(resolvedName); err != nil {
-		return volume.Response{Err: err.Error()}
+		return err
 	}
-	return volume.Response{}
+	return nil
 }
 
-func (v volumeDriver) Path(r volume.Request) volume.Response {
+func (v volumeDriver) Path(r *volume.PathRequest) (*volume.PathResponse, error) {
 	resolvedName, _ := resolveName(r.Name)
 
 	log.Debugf("Host path for %s (%s) is at %s", r.Name, resolvedName, mountpoint(v.root, resolvedName))
-	return volume.Response{Mountpoint: mountpoint(v.root, resolvedName)}
+	return &volume.PathResponse{Mountpoint: mountpoint(v.root, resolvedName)}, nil
 }
 
-func (v volumeDriver) Get(r volume.Request) volume.Response {
+func (v volumeDriver) Get(r *volume.GetRequest) (*volume.GetResponse, error) {
 	log.Debugf("Entering Get: %v", r)
 	v.m.Lock()
 	defer v.m.Unlock()
@@ -75,19 +76,19 @@ func (v volumeDriver) Get(r volume.Request) volume.Response {
 
 	if v.mountm.HasMount(resolvedName) {
 		log.Debugf("Get: mount found for %s, host directory: %s", resolvedName, hostdir)
-		return volume.Response{Volume: &volume.Volume{Name: resolvedName, Mountpoint: hostdir}}
+		return &volume.GetResponse{Volume: &volume.Volume{Name: resolvedName, Mountpoint: hostdir}}, nil
 	}
-	return volume.Response{}
+	return nil, nil
 }
 
-func (v volumeDriver) List(r volume.Request) volume.Response {
-	log.Debugf("Entering List: %v", r)
-	return volume.Response{Volumes: v.mountm.GetVolumes(v.root)}
+func (v volumeDriver) List() (*volume.ListResponse, error) {
+	log.Debugf("Entering List")
+	return &volume.ListResponse{Volumes: v.mountm.GetVolumes(v.root)}, nil
 }
 
-func (v volumeDriver) Capabilities(r volume.Request) volume.Response {
-	log.Debugf("Entering Capabilities: %v", r)
-	return volume.Response{
+func (v volumeDriver) Capabilities() *volume.CapabilitiesResponse {
+	// log.Debugf("Entering Capabilities: %v", r)
+	return &volume.CapabilitiesResponse{
 		Capabilities: volume.Capability{
 			Scope: "local",
 		},
