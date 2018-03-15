@@ -5,6 +5,7 @@ go:
 script:
   - go test ./...
   - go build
+  - bash -e ./mkPlugin.sh ContainX/docker-volume-netshare
 install:
   - go get github.com/stretchr/testify
   - go get -v ./...

@@ -12,6 +12,7 @@ do
     chmod +x ./docker-volume-netshare
     TMPDIR=/tmp/docker-volume-netshare
     rm -rf $TMPDIR
+    mkdir -p $TMPDIR
     cp ./docker-volume-netshare ${TMPDIR}/docker-volume-netshare
     SHARE_TYPE=${sharetype} envsubst '$SHARE_TYPE' < support/plugin/Dockerfile.tmpl > ${TMPDIR}/Dockerfile
     SHARE_TYPE=${sharetype} envsubst '$SHARE_TYPE' < support/plugin/netshare.sh.tmpl > ${TMPDIR}/netshare.sh
