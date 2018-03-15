@@ -1,3 +1,6 @@
+sudo: required
+services:
+  - docker
 language: go
 go:
   - 1.7.0
@@ -5,6 +8,11 @@ go:
 script:
   - go test ./...
   - go build
+  - bash -e ./mkPlugin.sh containx/docker-volume-netshare
+  - docker plugin enable containx/docker-volume-netshare-cifs
+  - docker plugin enable containx/docker-volume-netshare-efs
+  - docker plugin enable containx/docker-volume-netshare-ceph
+  - docker plugin enable containx/docker-volume-netshare-nfs
 install:
   - go get github.com/stretchr/testify
   - go get -v ./...

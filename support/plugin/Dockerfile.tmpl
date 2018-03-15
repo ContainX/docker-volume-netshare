@@ -1,0 +1,7 @@
+FROM alpine
+COPY docker-volume-netshare netshare-$SHARE_TYPE.sh /
+RUN mkdir -p /var/lib/docker-volumes/netshare && \
+  chmod 700 /netshare-$SHARE_TYPE.sh /docker-volume-netshare
+ENV SHARE_OPTS="" \
+    NETSHARE_SOCKET_NAME="netshare"
+ENTRYPOINT ["sh", "/netshare-$SHARE_TYPE.sh"]

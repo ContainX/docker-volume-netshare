@@ -1,0 +1,34 @@
+{
+    "Description": "A $SHARE_TYPE plugin for Docker",
+    "Entrypoint" : [
+        "sh", "/netshare-$SHARE_TYPE.sh"
+    ],
+    "Interface": {
+        "Socket": "netshare.sock",
+        "Types": [
+            "docker.volumedriver/1.0"
+        ]
+    },
+    "PropagatedMount": "/var/lib/docker-volumes/netshare",
+    "Env": [
+        {
+            "Name":"SHARE_OPTS",
+            "Description": "Additional options to pass to the netshare",
+            "Value": "",
+            "Settable": [
+                "value"
+            ]
+        },
+        {
+            "Name":"NETSHARE_SOCKET_NAME",
+            "Description": "socket filename for Interface socket",
+            "Value": "netshare"
+        }
+    ],
+    "Linux": {
+        "Capabilities": ["CAP_SYS_ADMIN"]
+    },
+    "network": {
+        "type": "host"
+    }
+}
