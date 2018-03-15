@@ -1,7 +1,8 @@
 FROM alpine
 COPY docker-volume-netshare /bin/docker-volume-netshare
 COPY netshare.sh /netshare.sh
-RUN mkdir -p /var/lib/docker-volumes/netshare
+RUN mkdir -p /var/lib/docker-volumes/netshare && \
+  chmod +x /netshare.sh /bin/docker-volume-netshare
 ENV SHARE_OPTS="" \
     NETSHARE_SOCKET_NAME="netshare"
 ENTRYPOINT ["sh", "/netshare-$SHARE_TYPE.sh"]

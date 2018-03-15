@@ -9,8 +9,7 @@ fi
 
 for sharetype in nfs ceph efs cifs
 do
-    chmod +x ./docker-volume-netshare
-    TMPDIR=/tmp/docker-volume-netshare
+    TMPDIR=./plugin-build-${sharetype}
     rm -rf $TMPDIR
     mkdir -p $TMPDIR
     cp ./docker-volume-netshare ${TMPDIR}/docker-volume-netshare
@@ -24,5 +23,5 @@ do
     docker export "$id" | sudo tar -x -C $TMPDIR/rootfs
     docker rm -vf "$id"
     docker rmi netshare 
-    docker plugin create $PLUGIN_NAME-${sharetype} $TMPDIR
+    sudo docker plugin create $PLUGIN_NAME-${sharetype} $TMPDIR
 done
