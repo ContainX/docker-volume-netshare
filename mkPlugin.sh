@@ -14,14 +14,14 @@ do
     mkdir -p $TMPDIR
     cp ./docker-volume-netshare ${TMPDIR}/docker-volume-netshare
     SHARE_TYPE=${sharetype} envsubst '$SHARE_TYPE' < support/plugin/Dockerfile.tmpl > ${TMPDIR}/Dockerfile
-    SHARE_TYPE=${sharetype} envsubst '$SHARE_TYPE' < support/plugin/netshare.sh.tmpl > ${TMPDIR}/netshare.sh
-    docker build -t netshare ${TMPDIR}
-    rm ${TMPDIR}/Dockerfile ${TMPDIR}/netshare.sh
+    SHARE_TYPE=${sharetype} envsubst '$SHARE_TYPE' < support/plugin/netshare.sh.tmpl > ${TMPDIR}/netshare-${sharetype}.sh
+    docker build -t netshare-${sharetype} ${TMPDIR}
+    rm ${TMPDIR}/Dockerfile ${TMPDIR}/netshare-${sharetype}.sh
     SHARE_TYPE=${sharetype} envsubst '$SHARE_TYPE' < support/plugin/config.json.tmpl > ${TMPDIR}/config.json
-    id=$(docker create netshare true)
+    id=$(docker create netshare-${sharetype} true)
     mkdir -p $TMPDIR/rootfs
     docker export "$id" | sudo tar -x -C $TMPDIR/rootfs
     docker rm -vf "$id"
-    docker rmi netshare 
+    docker rmi netshare-${sharetype}
     sudo docker plugin create $PLUGIN_NAME-${sharetype} $TMPDIR
 done
