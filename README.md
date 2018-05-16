@@ -56,6 +56,12 @@ The method below will install the sysvinit and /etc/default options that can be 
 ```
   $ sudo docker-volume-netshare nfs
 ```
+If you are not using the latest stable version of docker engine please specify the version with flag.
+For example:
+```
+  $ sudo docker-volume-netshare nfs -a 1.35
+```
+
 
 **2. Launch a container**
 

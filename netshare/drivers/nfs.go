@@ -24,9 +24,9 @@ var (
 	EmptyMap = map[string]string{}
 )
 
-func NewNFSDriver(root string, version int, nfsopts string) nfsDriver {
+func NewNFSDriver(root string, version int, nfsopts string, mounts *MountManager) nfsDriver {
 	d := nfsDriver{
-		volumeDriver: newVolumeDriver(root),
+		volumeDriver: newVolumeDriver(root, mounts),
 		version:      version,
 		nfsopts:      map[string]string{},
 	}
@@ -60,8 +60,10 @@ func (n nfsDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error) 
 		n.mountm.Increment(resolvedName)
 		if err := run(fmt.Sprintf("grep -c %s /proc/mounts", hostdir)); err != nil {
 			log.Infof("Existing NFS volume not mounted, force remount.")
+			// maintain count
+			n.mountm.Decrement(resolvedName)
 		} else {
-			n.mountm.Increment(resolvedName)
+			//n.mountm.Increment(resolvedName)
 			return &volume.MountResponse{Mountpoint: hostdir}, nil
 		}
 	}
