@@ -22,10 +22,10 @@ type efsDriver struct {
 	dnscache map[string]string
 }
 
-func NewEFSDriver(root, nameserver string, resolve bool) efsDriver {
+func NewEFSDriver(root, nameserver string, resolve bool, mounts *MountManager) efsDriver {
 
 	d := efsDriver{
-		volumeDriver: newVolumeDriver(root),
+		volumeDriver: newVolumeDriver(root, mounts),
 		resolve:      resolve,
 		dnscache:     map[string]string{},
 	}

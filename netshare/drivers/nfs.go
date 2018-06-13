@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -24,9 +24,9 @@ var (
 	EmptyMap = map[string]string{}
 )
 
-func NewNFSDriver(root string, version int, nfsopts string) nfsDriver {
+func NewNFSDriver(root string, version int, nfsopts string, mounts *MountManager) nfsDriver {
 	d := nfsDriver{
-		volumeDriver: newVolumeDriver(root),
+		volumeDriver: newVolumeDriver(root, mounts),
 		version:      version,
 		nfsopts:      map[string]string{},
 	}
@@ -55,13 +55,17 @@ func (n nfsDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error) 
 		}
 	}
 
-	if n.mountm.HasMount(resolvedName) && n.mountm.Count(resolvedName) > 0 {
+	if n.mountm.HasMount(resolvedName) {
 		log.Infof("Using existing NFS volume mount: %s", hostdir)
 		n.mountm.Increment(resolvedName)
 		if err := run(fmt.Sprintf("grep -c %s /proc/mounts", hostdir)); err != nil {
 			log.Infof("Existing NFS volume not mounted, force remount.")
+			// maintain count
+			if n.mountm.Count(resolvedName) > 0 {
+				n.mountm.Decrement(resolvedName)
+			}
 		} else {
-			n.mountm.Increment(resolvedName)
+			//n.mountm.Increment(resolvedName)
 			return &volume.MountResponse{Mountpoint: hostdir}, nil
 		}
 	}
@@ -69,6 +73,9 @@ func (n nfsDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error) 
 	log.Infof("Mounting NFS volume %s on %s", source, hostdir)
 
 	if err := createDest(hostdir); err != nil {
+		if n.mountm.Count(resolvedName) > 0 {
+			n.mountm.Decrement(resolvedName)
+		}
 		return nil, err
 	}
 
@@ -79,6 +86,7 @@ func (n nfsDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error) 
 	n.mountm.Add(resolvedName, hostdir)
 
 	if err := n.mountVolume(resolvedName, source, hostdir, n.version); err != nil {
+		n.mountm.Decrement(resolvedName)
 		return nil, err
 	}
 
@@ -86,6 +94,7 @@ func (n nfsDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error) 
 		log.Infof("Mount: Share and Create options enabled - using %s as sub-dir mount", resolvedName)
 		datavol := filepath.Join(hostdir, resolvedName)
 		if err := createDest(filepath.Join(hostdir, resolvedName)); err != nil {
+			n.mountm.Decrement(resolvedName)
 			return nil, err
 		}
 		hostdir = datavol
