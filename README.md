@@ -56,7 +56,7 @@ The method below will install the sysvinit and /etc/default options that can be 
 ```
   $ sudo docker-volume-netshare nfs
 ```
-**2. Run the plugin - adding the correct DOCKER_API_VERSION
+**2. Run the plugin - adding the correct DOCKER_API_VERSION**
 If you are not using the latest stable version of docker engine please specify the version with flag.
 For example:
 To check docker API version:
