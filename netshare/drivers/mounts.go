@@ -2,8 +2,8 @@ package drivers
 
 import (
 	"errors"
-	log "github.com/sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
