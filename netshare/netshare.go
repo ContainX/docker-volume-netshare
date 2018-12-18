@@ -1,6 +1,7 @@
 package netshare
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,8 +9,11 @@ import (
 	"syscall"
 
 	"github.com/ContainX/docker-volume-netshare/netshare/drivers"
-	log "github.com/sirupsen/logrus"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/client"
 	"github.com/docker/go-plugins-helpers/volume"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -37,6 +41,7 @@ const (
 	CephPort         = "port"
 	CephOpts         = "options"
 	ServerMount      = "servermount"
+	DockerEngineAPI  = "dockerapiversion"
 	EnvSambaUser     = "NETSHARE_CIFS_USERNAME"
 	EnvSambaPass     = "NETSHARE_CIFS_PASSWORD"
 	EnvSambaWG       = "NETSHARE_CIFS_DOMAIN"
@@ -114,6 +119,7 @@ func setupFlags() {
 	rootCmd.PersistentFlags().Bool(TCPFlag, false, "Bind to TCP rather than Unix sockets.  Can also be set via NETSHARE_TCP_ENABLED")
 	rootCmd.PersistentFlags().String(PortFlag, ":8877", "TCP Port if --tcp flag is true.  :PORT for all interfaces or ADDRESS:PORT to bind.")
 	rootCmd.PersistentFlags().Bool(VerboseFlag, false, "Turns on verbose logging")
+	rootCmd.PersistentFlags().StringP(DockerEngineAPI, "a", "", "Docker Engine API Version. Default to latest stable.")
 
 	cifsCmd.Flags().StringP(UsernameFlag, "u", "", "Username to use for mounts.  Can also set environment NETSHARE_CIFS_USERNAME")
 	cifsCmd.Flags().StringP(PasswordFlag, "p", "", "Password to use for mounts.  Can also set environment NETSHARE_CIFS_PASSWORD")
@@ -148,6 +154,14 @@ func setupLogger(cmd *cobra.Command, args []string) {
 	}
 }
 
+func setDockerEnv() {
+	api, _ := rootCmd.PersistentFlags().GetString(DockerEngineAPI)
+	if api != "" {
+		os.Setenv("DOCKER_API_VERSION", api)
+		log.Infof("DOCKER_API_VERSION: %s", api)
+	}
+}
+
 func execCEPH(cmd *cobra.Command, args []string) {
 	username, _ := cmd.Flags().GetString(NameFlag)
 	password, _ := cmd.Flags().GetString(SecretFlag)
@@ -156,7 +170,7 @@ func execCEPH(cmd *cobra.Command, args []string) {
 	cephport, _ := cmd.Flags().GetString(CephPort)
 	servermount, _ := cmd.Flags().GetString(ServerMount)
 	cephopts, _ := cmd.Flags().GetString(CephOpts)
-
+	setDockerEnv()
 	if len(username) > 0 {
 		username = "name=" + username
 	}
@@ -166,12 +180,14 @@ func execCEPH(cmd *cobra.Command, args []string) {
 	if len(context) > 0 {
 		context = "context=" + "\"" + context + "\""
 	}
-	d := drivers.NewCephDriver(rootForType(drivers.CEPH), username, password, context, cephmount, cephport, servermount, cephopts)
+	mount := syncDockerState("ceph")
+	d := drivers.NewCephDriver(rootForType(drivers.CEPH), username, password, context, cephmount, cephport, servermount, cephopts, mount)
 	start(drivers.CEPH, d)
 }
 
 func execNFS(cmd *cobra.Command, args []string) {
 	version, _ := cmd.Flags().GetInt(VersionFlag)
+	setDockerEnv()
 	if os.Getenv(EnvNfsVers) != "" {
 		if v, err := strconv.Atoi(os.Getenv(EnvNfsVers)); err == nil {
 			if v == 3 || v == 4 {
@@ -180,7 +196,8 @@ func execNFS(cmd *cobra.Command, args []string) {
 		}
 	}
 	options, _ := cmd.Flags().GetString(OptionsFlag)
-	d := drivers.NewNFSDriver(rootForType(drivers.NFS), version, options)
+	mount := syncDockerState("nfs")
+	d := drivers.NewNFSDriver(rootForType(drivers.NFS), version, options, mount)
 	startOutput(fmt.Sprintf("NFS Version %d :: options: '%s'", version, options))
 	start(drivers.NFS, d)
 }
@@ -188,7 +205,9 @@ func execNFS(cmd *cobra.Command, args []string) {
 func execEFS(cmd *cobra.Command, args []string) {
 	resolve, _ := cmd.Flags().GetBool(NoResolveFlag)
 	ns, _ := cmd.Flags().GetString(NameServerFlag)
-	d := drivers.NewEFSDriver(rootForType(drivers.EFS), ns, !resolve)
+	setDockerEnv()
+	mount := syncDockerState("efs")
+	d := drivers.NewEFSDriver(rootForType(drivers.EFS), ns, !resolve, mount)
 	startOutput(fmt.Sprintf("EFS :: resolve: %v, ns: %s", resolve, ns))
 	start(drivers.EFS, d)
 }
@@ -203,9 +222,11 @@ func execCIFS(cmd *cobra.Command, args []string) {
 	netrc, _ := cmd.Flags().GetString(NetRCFlag)
 	options, _ := cmd.Flags().GetString(OptionsFlag)
 
+	setDockerEnv()
 	creds := drivers.NewCifsCredentials(user, pass, domain, security, fileMode, dirMode)
 
-	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), creds, netrc, options)
+	mount := syncDockerState("cifs")
+	d := drivers.NewCIFSDriver(rootForType(drivers.CIFS), creds, netrc, options, mount)
 	if len(user) > 0 {
 		startOutput(fmt.Sprintf("CIFS :: %s, opts: %s", creds, options))
 	} else {
@@ -261,4 +282,60 @@ func isTCPEnabled() bool {
 		return ev
 	}
 	return false
+}
+
+func syncDockerState(driverName string) *drivers.MountManager {
+	log.Infof("Checking for the references of volumes in docker daemon.")
+	mount := newMountManager()
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		log.Error(err)
+	}
+
+	volumes, err := cli.VolumeList(context.Background(), filters.Args{})
+	if err != nil {
+		log.Fatal(err, ". Use -a flag to setup the DOCKER_API_VERSION. Run 'docker-volume-netshare --help' for usage.")
+	}
+
+	for _, vol := range volumes.Volumes {
+		if !(vol.Driver == driverName) {
+			continue
+		}
+		connections := activeConnections(vol.Name)
+		log.Infof("Recovered state: %s , %s , %s , %s , %d ", vol.Name, vol.Mountpoint, vol.Driver, vol.CreatedAt, connections)
+		mount.AddMount(vol.Name, vol.Mountpoint, connections)
+	}
+	return mount
+}
+
+func newMountManager() *drivers.MountManager {
+	mount := drivers.NewVolumeManager()
+	return mount
+}
+
+// The number of running containers using Volume
+func activeConnections(volumeName string) int {
+	cli, err := client.NewEnvClient()
+
+	if err != nil {
+		log.Error(err)
+	}
+	var counter = 0
+	ContainerListResponse, err := cli.ContainerList(context.Background(), types.ContainerListOptions{}) //Only check the running containers using volume
+	if err != nil {
+		log.Fatal(err, ". Use -a flag to setup the DOCKER_API_VERSION. Run 'docker-volume-netshare --help' for usage.")
+	}
+
+	for _, container := range ContainerListResponse {
+		if len(container.Mounts) == 0 {
+			continue
+		}
+		for _, mounts := range container.Mounts {
+			if !(mounts.Name == volumeName) {
+				continue
+			}
+			counter++
+		}
+	}
+	return counter
 }

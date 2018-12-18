@@ -2,9 +2,13 @@ package drivers
 
 import (
 	"errors"
+	"context"
+	"strings"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
-	"strings"
+	"github.com/docker/docker/client"
+	"github.com/docker/docker/api/types"
 )
 
 const (
@@ -20,22 +24,22 @@ type mount struct {
 	managed     bool
 }
 
-type mountManager struct {
+type MountManager struct {
 	mounts map[string]*mount
 }
 
-func NewVolumeManager() *mountManager {
-	return &mountManager{
+func NewVolumeManager() *MountManager {
+	return &MountManager{
 		mounts: map[string]*mount{},
 	}
 }
 
-func (m *mountManager) HasMount(name string) bool {
+func (m *MountManager) HasMount(name string) bool {
 	_, found := m.mounts[name]
 	return found
 }
 
-func (m *mountManager) HasOptions(name string) bool {
+func (m *MountManager) HasOptions(name string) bool {
 	c, found := m.mounts[name]
 	if found {
 		return c.opts != nil && len(c.opts) > 0
@@ -43,7 +47,7 @@ func (m *mountManager) HasOptions(name string) bool {
 	return false
 }
 
-func (m *mountManager) HasOption(name, key string) bool {
+func (m *MountManager) HasOption(name, key string) bool {
 	if m.HasOptions(name) {
 		if _, ok := m.mounts[name].opts[key]; ok {
 			return ok
@@ -52,7 +56,7 @@ func (m *mountManager) HasOption(name, key string) bool {
 	return false
 }
 
-func (m *mountManager) GetOptions(name string) map[string]string {
+func (m *MountManager) GetOptions(name string) map[string]string {
 	if m.HasOptions(name) {
 		c, _ := m.mounts[name]
 		return c.opts
@@ -60,7 +64,7 @@ func (m *mountManager) GetOptions(name string) map[string]string {
 	return map[string]string{}
 }
 
-func (m *mountManager) GetOption(name, key string) string {
+func (m *MountManager) GetOption(name, key string) string {
 	if m.HasOption(name, key) {
 		v, _ := m.mounts[name].opts[key]
 		return v
@@ -68,7 +72,7 @@ func (m *mountManager) GetOption(name, key string) string {
 	return ""
 }
 
-func (m *mountManager) GetOptionAsBool(name, key string) bool {
+func (m *MountManager) GetOptionAsBool(name, key string) bool {
 	rv := strings.ToLower(m.GetOption(name, key))
 	if rv == "yes" || rv == "true" {
 		return true
@@ -76,12 +80,12 @@ func (m *mountManager) GetOptionAsBool(name, key string) bool {
 	return false
 }
 
-func (m *mountManager) IsActiveMount(name string) bool {
+func (m *MountManager) IsActiveMount(name string) bool {
 	c, found := m.mounts[name]
 	return found && c.connections > 0
 }
 
-func (m *mountManager) Count(name string) int {
+func (m *MountManager) Count(name string) int {
 	c, found := m.mounts[name]
 	if found {
 		return c.connections
@@ -89,7 +93,7 @@ func (m *mountManager) Count(name string) int {
 	return 0
 }
 
-func (m *mountManager) Add(name, hostdir string) {
+func (m *MountManager) Add(name, hostdir string) {
 	_, found := m.mounts[name]
 	if found {
 		m.Increment(name)
@@ -98,7 +102,7 @@ func (m *mountManager) Add(name, hostdir string) {
 	}
 }
 
-func (m *mountManager) Create(name, hostdir string, opts map[string]string) *mount {
+func (m *MountManager) Create(name, hostdir string, opts map[string]string) *mount {
 	c, found := m.mounts[name]
 	if found && c.connections > 0 {
 		c.opts = opts
@@ -110,10 +114,13 @@ func (m *mountManager) Create(name, hostdir string, opts map[string]string) *mou
 	}
 }
 
-func (m *mountManager) Delete(name string) error {
-	log.Debugf("Delete volume: %s, connections: %d", name, m.Count(name))
+func (m *MountManager) Delete(name string) error {
+	// Check if any stopped containers are having references with volume.
+	refCount := checkReferences(name)
+	log.Debugf("Reference count %d", refCount)
 	if m.HasMount(name) {
-		if m.Count(name) < 1 {
+		if m.Count(name) < 1 && refCount < 1 {
+			log.Debugf("Delete volume: %s, connections: %d", name, m.Count(name))
 			delete(m.mounts, name)
 			return nil
 		}
@@ -122,7 +129,7 @@ func (m *mountManager) Delete(name string) error {
 	return nil
 }
 
-func (m *mountManager) DeleteIfNotManaged(name string) error {
+func (m *MountManager) DeleteIfNotManaged(name string) error {
 	if m.HasMount(name) && !m.IsActiveMount(name) && !m.mounts[name].managed {
 		log.Infof("Removing un-managed volume")
 		return m.Delete(name)
@@ -130,24 +137,30 @@ func (m *mountManager) DeleteIfNotManaged(name string) error {
 	return nil
 }
 
-func (m *mountManager) Increment(name string) int {
+func (m *MountManager) Increment(name string) int {
+	log.Infof("Incrementing for %s", name)
 	c, found := m.mounts[name]
+	log.Infof("Previous connections state : %d", c.connections)
 	if found {
 		c.connections++
+		log.Infof("Current connections state : %d", c.connections)
 		return c.connections
 	}
 	return 0
 }
 
-func (m *mountManager) Decrement(name string) int {
+func (m *MountManager) Decrement(name string) int {
+	log.Infof("Decrementing for %s", name)
 	c, found := m.mounts[name]
+	log.Infof("Previous connections state : %d", c.connections)
 	if found && c.connections > 0 {
 		c.connections--
+		log.Infof("Current connections state :  %d", c.connections)
 	}
 	return 0
 }
 
-func (m *mountManager) GetVolumes(rootPath string) []*volume.Volume {
+func (m *MountManager) GetVolumes(rootPath string) []*volume.Volume {
 
 	volumes := []*volume.Volume{}
 
@@ -155,4 +168,36 @@ func (m *mountManager) GetVolumes(rootPath string) []*volume.Volume {
 		volumes = append(volumes, &volume.Volume{Name: mount.name, Mountpoint: mount.hostdir})
 	}
 	return volumes
+}
+
+func (m *MountManager) AddMount(name string, hostdir string, connections int) {
+	m.mounts[name] = &mount{name: name, hostdir: hostdir, managed: true, connections: connections}
+}
+
+//Checking volume references with started and stopped containers as well.
+func checkReferences(volumeName string) int {
+
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		log.Error(err)
+	}
+
+	var counter = 0
+	ContainerListResponse, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true}) // All : true will return the stopped containers as well.
+	if err != nil {
+		log.Fatal(err,". Use -a flag to setup the DOCKER_API_VERSION. Run 'docker-volume-netshare --help' for usage.")
+	}
+
+	for _, container := range ContainerListResponse {
+		if len(container.Mounts) == 0 {
+			continue
+		}
+		for _, mounts := range container.Mounts {
+			if !(mounts.Name == volumeName) {
+				continue
+			}
+			counter++
+		}
+	}
+	return counter
 }

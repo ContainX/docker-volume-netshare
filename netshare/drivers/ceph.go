@@ -24,9 +24,9 @@ type cephDriver struct {
 	cephopts   map[string]string
 }
 
-func NewCephDriver(root string, username string, password string, context string, cephmount string, cephport string, localmount string, cephopts string) cephDriver {
+func NewCephDriver(root string, username string, password string, context string, cephmount string, cephport string, localmount string, cephopts string, mounts *MountManager) cephDriver {
 	d := cephDriver{
-		volumeDriver: newVolumeDriver(root),
+		volumeDriver: newVolumeDriver(root, mounts),
 		username:     username,
 		password:     password,
 		context:      context,

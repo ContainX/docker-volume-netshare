@@ -56,6 +56,38 @@ The method below will install the sysvinit and /etc/default options that can be 
 ```
   $ sudo docker-volume-netshare nfs
 ```
+**2. Run the plugin - adding the correct DOCKER_API_VERSION**
+If you are not using the latest stable version of docker engine please specify the version with flag.
+For example:
+To check docker API version:
+```
+docker version
+Client:
+Version:	17.12.0-ce
+API version:	1.35
+Go version:	go1.9.2
+Git commit:	c97c6d6
+Built:	Wed Dec 27 20:11:19 2017
+OS/Arch:	linux/amd64
+
+Server:
+Engine:
+ Version:	17.12.0-ce
+ API version:	1.35 (minimum version 1.12)
+ Go version:	go1.9.2
+ Git commit:	c97c6d6
+ Built:	Wed Dec 27 20:09:53 2017
+ OS/Arch:	linux/amd64
+ Experimental:	false
+```
+Here the Docker API Version is 1.35. So you should start the plugin with the right version of Docker API.
+
+Minimum supported version for the plugin is 1.12.
+
+```
+  $ sudo docker-volume-netshare nfs -a 1.35
+```
+
 
 **2. Launch a container**
 
@@ -90,7 +122,7 @@ The method below will install the sysvinit and /etc/default options that can be 
 **1. Run the plugin - can be added to systemd or run in the background**
 
 ```
-  $ sudo docker-volume-netshare cifs --username user --password pass --domain domain --security security
+  $ sudo docker-volume-netshare cifs --username user --password pass --domain domain --security security -a docker_api_version
 ```
 
 **2. Launch a container**
@@ -122,7 +154,7 @@ See example:
 **2. Run the plugin**
 
 ```
-  $ sudo docker-volume-netshare cifs
+  $ sudo docker-volume-netshare cifs -a docker_api_version
 ```
 
 **3. Launch a container**
@@ -140,7 +172,7 @@ options and other info can be eliminated when running a container.
 **1. Run the plugin - can be added to systemd or run in the background**
 
 ```
-  $ sudo docker-volume-netshare cifs
+  $ sudo docker-volume-netshare cifs -a docker_api_version
 ```
 
 **2. Create a Volume**

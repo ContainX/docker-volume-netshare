@@ -50,9 +50,9 @@ func NewCifsCredentials(user, pass, domain, security, fileMode, dirMode string) 
 }
 
 // NewCIFSDriver creating the cifs driver
-func NewCIFSDriver(root string, creds *CifsCreds, netrc, cifsopts string) CifsDriver {
+func NewCIFSDriver(root string, creds *CifsCreds, netrc, cifsopts string, mounts *MountManager) CifsDriver {
 	d := CifsDriver{
-		volumeDriver: newVolumeDriver(root),
+		volumeDriver: newVolumeDriver(root, mounts),
 		creds:        creds,
 		netrc:        parseNetRC(netrc),
 		cifsopts:     map[string]string{},

@@ -9,14 +9,14 @@ import (
 
 type volumeDriver struct {
 	root   string
-	mountm *mountManager
+	mountm *MountManager
 	m      *sync.Mutex
 }
 
-func newVolumeDriver(root string) volumeDriver {
+func newVolumeDriver(root string, mounts *MountManager) volumeDriver {
 	return volumeDriver{
 		root:   root,
-		mountm: NewVolumeManager(),
+		mountm: mounts,
 		m:      &sync.Mutex{},
 	}
 }
