@@ -39,8 +39,8 @@ The method below will install the sysvinit and /etc/default options that can be 
 1. Install the Package
 
 ```
-  $ wget https://github.com/ContainX/docker-volume-netshare/releases/download/v0.34/docker-volume-netshare_0.34_amd64.deb
-  $ sudo dpkg -i docker-volume-netshare_0.34_amd64.deb
+  $ wget https://github.com/ContainX/docker-volume-netshare/releases/download/v0.36/docker-volume-netshare_0.36_amd64.deb
+  $ sudo dpkg -i docker-volume-netshare_0.36_amd64.deb
 ```
 
 2. Modify the startup options in `/etc/default/docker-volume-netshare`
@@ -198,7 +198,7 @@ e.g.: Apple Time Capsule's require the security mode ``ntlm``.
 
 This software is licensed under the Apache 2 license, quoted below.
 
-Copyright 2016 ContainX / Jeremy Unruh
+Copyright 2019 ContainX / Jeremy Unruh
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
