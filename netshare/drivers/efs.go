@@ -103,7 +103,7 @@ func (e efsDriver) fixSource(name, id string) string {
 	}
 
 	v := strings.Split(name, "/")
-	reg, _ := regexp.Compile("(fs-[0-9a-f]+)$")
+	reg, _ := regexp.Compile("([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)$")
 	uri := reg.FindString(v[0])
 
 	if e.resolve {
