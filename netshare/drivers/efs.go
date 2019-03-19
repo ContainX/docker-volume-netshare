@@ -47,6 +47,7 @@ func (e efsDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error) 
 	defer e.m.Unlock()
 	hostdir := mountpoint(e.root, r.Name)
 	source := e.fixSource(r.Name, r.ID)
+	log.Infof("Cleaned source: %s", source)
 
 	if e.mountm.HasMount(r.Name) && e.mountm.Count(r.Name) > 0 {
 		log.Infof("Using existing EFS volume mount: %s", hostdir)
@@ -98,12 +99,17 @@ func (e efsDriver) Unmount(r *volume.UnmountRequest) error {
 }
 
 func (e efsDriver) fixSource(name, id string) string {
+
+	if !e.resolve {
+		return name + ":/"
+	}
+
 	if e.mountm.HasOption(name, ShareOpt) {
 		name = e.mountm.GetOption(name, ShareOpt)
 	}
 
 	v := strings.Split(name, "/")
-	reg, _ := regexp.Compile("([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)$")
+	reg, _ := regexp.Compile("(fs-[0-9a-f]+)$")
 	uri := reg.FindString(v[0])
 
 	if e.resolve {
