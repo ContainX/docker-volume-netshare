@@ -126,7 +126,7 @@ func (e efsDriver) fixSource(name, id string) string {
 }
 
 func (e efsDriver) mountVolume(source, dest string) error {
-	cmd := fmt.Sprintf("mount -t nfs4 -o nfsvers=4.1 %s %s", source, dest)
+	cmd := fmt.Sprintf("mount -t nfs4 -o nfsvers=4.1,noresvport %s %s", source, dest)
 	log.Debugf("exec: %s\n", cmd)
 	return run(cmd)
 }
