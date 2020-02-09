@@ -191,7 +191,7 @@ This will create a new volume via the Docker daemon which will call `Create` in 
 ```
 
 #### Security Option
-Some CIFS servers may require a specific security mode to connect. The ``security`` option defines the ``sec`` option that is passed to ``mount.cifs``. [More information about available ``sec`` options](https://www.samba.org/samba/docs/man/manpages-3/mount.cifs.8.html).
+Some CIFS servers may require a specific security mode to connect. The ``security`` option defines the ``sec`` option that is passed to ``mount.cifs``. [More information about available ``sec`` options](https://www.samba.org/~ab/output/htmldocs/manpages-3/mount.cifs.8.html).
 e.g.: Apple Time Capsule's require the security mode ``ntlm``.
 
 ## License
