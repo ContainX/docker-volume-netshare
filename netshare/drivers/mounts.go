@@ -170,8 +170,8 @@ func (m *MountManager) GetVolumes(rootPath string) []*volume.Volume {
 	return volumes
 }
 
-func (m *MountManager) AddMount(name string, hostdir string, connections int) {
-	m.mounts[name] = &mount{name: name, hostdir: hostdir, managed: true, connections: connections}
+func (m *MountManager) AddMount(name string, hostdir string, opts map[string]string, connections int) {
+	m.mounts[name] = &mount{name: name, hostdir: hostdir, managed: true, opts: opts, connections: connections}
 }
 
 //Checking volume references with started and stopped containers as well.
