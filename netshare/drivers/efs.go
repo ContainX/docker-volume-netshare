@@ -102,6 +102,12 @@ func (e efsDriver) fixSource(name, id string) string {
 		name = e.mountm.GetOption(name, ShareOpt)
 	}
 
+	pos := strings.Index(name, "_fs-")
+        // if name is prefixed, is because this volume is created by a stack, we need to remove this prefix before try to mount
+	if pos>0 {
+		name = name[pos+1:len(name)]
+        }
+
 	v := strings.Split(name, "/")
 	reg, _ := regexp.Compile("([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)$")
 	uri := reg.FindString(v[0])
