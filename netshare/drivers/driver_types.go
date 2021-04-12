@@ -5,7 +5,6 @@ type DriverType int
 const (
 	CIFS DriverType = iota
 	NFS
-	NFSCACHE
 	EFS
 	CEPH
 )
@@ -13,7 +12,6 @@ const (
 var driverTypes = []string{
 	"cifs",
 	"nfs",
-	"nfscache",
 	"efs",
 	"ceph",
 }
