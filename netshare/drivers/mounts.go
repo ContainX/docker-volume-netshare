@@ -119,8 +119,8 @@ func (m *MountManager) Delete(name string) error {
 	refCount := checkReferences(name)
 	log.Debugf("Reference count %d", refCount)
 	if m.HasMount(name) {
+		log.Debugf("Delete volume: %s, connections: %d", name, m.Count(name))
 		if m.Count(name) < 1 && refCount < 1 {
-			log.Debugf("Delete volume: %s, connections: %d", name, m.Count(name))
 			delete(m.mounts, name)
 			return nil
 		}
@@ -130,6 +130,7 @@ func (m *MountManager) Delete(name string) error {
 }
 
 func (m *MountManager) DeleteIfNotManaged(name string) error {
+	log.Debugf("Delete Not Managed volume name: %s", name)
 	if m.HasMount(name) && !m.IsActiveMount(name) && !m.mounts[name].managed {
 		log.Infof("Removing un-managed volume")
 		return m.Delete(name)

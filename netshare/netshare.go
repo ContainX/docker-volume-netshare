@@ -41,6 +41,9 @@ const (
 	CephPort         = "port"
 	CephOpts         = "options"
 	ServerMount      = "servermount"
+	StateFlag        = "state"
+	CacheFlag        = "cache"
+	LazyUmountFlag   = "lazyumount"
 	DockerEngineAPI  = "dockerapiversion"
 	EnvSambaUser     = "NETSHARE_CIFS_USERNAME"
 	EnvSambaPass     = "NETSHARE_CIFS_PASSWORD"
@@ -83,6 +86,12 @@ var (
 		Run:   execNFS,
 	}
 
+	nfsCacheCmd = &cobra.Command{
+		Use:   "nfscache",
+		Short: "run plugin in NFS/ccache mode",
+		Run:   execNFSCACHE,
+	}
+
 	efsCmd = &cobra.Command{
 		Use:   "efs",
 		Short: "run plugin in AWS EFS mode",
@@ -110,7 +119,7 @@ var (
 func Execute() {
 	setupFlags()
 	rootCmd.Long = fmt.Sprintf(NetshareHelp, Version, BuildDate)
-	rootCmd.AddCommand(versionCmd, cifsCmd, nfsCmd, efsCmd, cephCmd)
+	rootCmd.AddCommand(versionCmd, cifsCmd, nfsCmd, nfsCacheCmd, efsCmd, cephCmd)
 	rootCmd.Execute()
 }
 
@@ -132,6 +141,12 @@ func setupFlags() {
 
 	nfsCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]. Can also be set with NETSHARE_NFS_VERSION")
 	nfsCmd.Flags().StringP(OptionsFlag, "o", "", fmt.Sprintf("Options passed to nfs mounts (ex: %s)", drivers.DefaultNfsV3))
+
+	nfsCacheCmd.Flags().IntP(VersionFlag, "v", 4, "NFS Version to use [3 | 4]. Can also be set with NETSHARE_NFS_VERSION")
+	nfsCacheCmd.Flags().StringP(OptionsFlag, "o", "", fmt.Sprintf("Options passed to nfs mounts (ex: %s)", drivers.DefaultNfsCacheV3))
+	nfsCacheCmd.Flags().StringP(StateFlag, "F", "/run/nfscache.json", "State file.")
+	nfsCacheCmd.Flags().StringP(CacheFlag, "C", "/tmp", "Credentials cache directory.")
+	nfsCacheCmd.Flags().Bool(LazyUmountFlag, false, "Make the umount as soon as the filesystem is not busy anymore.")
 
 	efsCmd.Flags().String(AvailZoneFlag, "", "AWS Availability zone [default: \"\", looks up via metadata]")
 	efsCmd.Flags().String(NameServerFlag, "", "Custom DNS nameserver.  [default \"\", uses /etc/resolv.conf]")
@@ -199,6 +214,26 @@ func execNFS(cmd *cobra.Command, args []string) {
 	mount := syncDockerState("nfs")
 	d := drivers.NewNFSDriver(rootForType(drivers.NFS), version, options, mount)
 	startOutput(fmt.Sprintf("NFS Version %d :: options: '%s'", version, options))
+	start(drivers.NFS, d)
+}
+
+func execNFSCACHE(cmd *cobra.Command, args []string) {
+	version, _ := cmd.Flags().GetInt(VersionFlag)
+	stateFile, _ := cmd.Flags().GetString(StateFlag)
+	cacheDir, _ := cmd.Flags().GetString(CacheFlag)
+	lazyUmount, _ := cmd.Flags().GetBool(LazyUmountFlag)
+	setDockerEnv()
+	if os.Getenv(EnvNfsVers) != "" {
+		if v, err := strconv.Atoi(os.Getenv(EnvNfsVers)); err == nil {
+			if v == 3 || v == 4 {
+				version = v
+			}
+		}
+	}
+	options, _ := cmd.Flags().GetString(OptionsFlag)
+	mount := syncDockerState("nfs")
+	d := drivers.NewNFSCacheDriver(rootForType(drivers.NFS), version, options, mount, cacheDir, stateFile, lazyUmount)
+	startOutput(fmt.Sprintf("NFS CCache Version %d :: options: '%s', cache: '%s', state: '%s', lazy umount: %v", version, options, cacheDir, stateFile, lazyUmount))
 	start(drivers.NFS, d)
 }
 
