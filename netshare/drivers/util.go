@@ -1,7 +1,9 @@
 package drivers
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -81,4 +83,38 @@ func merge(src, src2 map[string]string) map[string]string {
 		dst[k] = v
 	}
 	return dst
+}
+
+func checkFile(file string) error {
+	_, err := os.Stat(file)
+	if os.IsNotExist(err) {
+		_, err := os.Create(file)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func readState(f string) (map[string]map[string]string, error) {
+	checkFile(f)
+	var jsonData map[string]map[string]string
+	jsonFile, _ := ioutil.ReadFile(f)
+	err := json.Unmarshal([]byte(jsonFile), &jsonData)
+	res := map[string]map[string]string{}
+	// Remove volumes with non existent paths
+	for k, v := range jsonData {
+		if _, err := os.Stat(v["Path"]); !os.IsNotExist(err) {
+			res[k] = map[string]string{
+				"Path": v["Path"],
+			}
+		}
+	}
+	return res, err
+}
+
+func writeState(f string, d map[string]map[string]string) error {
+	jsonData, _ := json.Marshal(d)
+	err := ioutil.WriteFile(f, jsonData, 0644)
+	return err
 }
